@@ -1,0 +1,79 @@
+body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: #0b1a2a;
+    color: #e6edf3;
+}
+
+/* HEADER */
+.header {
+    background: #081320;
+    padding: 15px 30px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #4fc3f7;
+    border-bottom: 1px solid #1f2f45;
+}
+
+/* STATUS BAR */
+.status-bar {
+    padding: 10px 30px;
+    background: #0f2235;
+    border-bottom: 1px solid #1f2f45;
+}
+
+/* GRID LAYOUT */
+.container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    padding: 20px;
+}
+
+/* CARD */
+.card {
+    background: #12263a;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.4);
+}
+
+/* CARD TITLE */
+.card h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #90caf9;
+}
+
+/* BIG VALUE */
+.value {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+/* COLORS FOR STATES */
+.state-idle { color: gray; }
+.state-waiting { color: orange; }
+.state-busy { color: #42a5f5; }
+.state-error { color: #ef5350; }
+
+/* TABLE */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #2c3e50;
+}
+
+th {
+    color: #90caf9;
+}
+
+/* FULL WIDTH SECTIONS */
+.full-width {
+    grid-column: span 4;
+}

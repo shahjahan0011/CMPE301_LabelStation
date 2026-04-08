@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="header">
+    LabelProMax MES
+</div>
+
+<div class="container">
+
+    <!-- CURRENT ORDER -->
+    <div class="card">
+        <h3>Current Order</h3>
+        <div class="value">{{ snapshot.current_order_id }}</div>
+    </div>
+
+    <!-- STATE -->
+    <div class="card">
+        <h3>Station State</h3>
+        <div class="value
+            {% if snapshot.station_state == 0 %}state-idle{% endif %}
+            {% if snapshot.station_state == 1 %}state-waiting{% endif %}
+            {% if snapshot.station_state == 2 %}state-busy{% endif %}
+            {% if snapshot.station_state == 3 %}state-error{% endif %}
+        ">
+            {{ snapshot.state_label }}
+        </div>
+    </div>
+
+    <!-- OEE -->
+    <div class="card">
+        <h3>OEE</h3>
+        <div class="value">{{ oee.oee }}</div>
+
+        <div style="background:#1e2f44; height:10px; border-radius:5px;">
+            <div style="width: {{ oee.oee * 100 }}%; height:10px; background:#4fc3f7;"></div>
+        </div>
+    </div>
+
+    <!-- GOOD COUNT -->
+    <div class="card">
+        <h3>Good Count</h3>
+        <div class="value">{{ snapshot.good_count }}</div>
+    </div>
+
+    <!-- TOTAL COUNT -->
+    <div class="card">
+        <h3>Total Count</h3>
+        <div class="value">{{ snapshot.total_count }}</div>
+    </div>
+
+    <!-- ORDERS TABLE -->
+    <div class="card full-width">
+        <h3>Production Orders</h3>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Product</th>
+                <th>Status</th>
+            </tr>
+
+            {% for o in orders %}
+            <tr>
+                <td>{{ o[0] }}</td>
+                <td>{{ o[1] }}</td>
+                <td>{{ o[5] }}</td>
+            </tr>
+            {% endfor %}
+
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

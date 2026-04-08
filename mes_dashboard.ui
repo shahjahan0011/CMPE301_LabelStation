@@ -6,75 +6,428 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>767</width>
+    <height>635</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="verticalLayoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>90</y>
-      <width>731</width>
-      <height>321</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <item>
-      <widget class="QTabWidget" name="mainTabWidget">
-       <property name="currentIndex">
-        <number>0</number>
+   <property name="autoFillBackground">
+    <bool>false</bool>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QGroupBox" name="Group">
+      <property name="title">
+       <string>MES Dashboard</string>
+      </property>
+      <widget class="QGroupBox" name="currentOrdersGroup">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>270</y>
+         <width>749</width>
+         <height>284</height>
+        </rect>
        </property>
-       <widget class="QWidget" name="activeOrdersTab">
-        <attribute name="title">
-         <string>Active Orders</string>
-        </attribute>
-        <widget class="QLabel" name="titleLabel">
+       <property name="title">
+        <string>Current Order &amp; Metrics</string>
+       </property>
+       <widget class="QGroupBox" name="countersgroupBox">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>70</y>
+          <width>681</width>
+          <height>57</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Counters</string>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>TotalCount : </string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_3">
+           <property name="text">
+            <string>19</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>GoodCount : </string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_2">
+           <property name="text">
+            <string>17</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Runtime : </string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit">
+           <property name="text">
+            <string>41.3 s</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QGroupBox" name="oeegroupBox">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>140</y>
+          <width>681</width>
+          <height>111</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>OEE Metrics</string>
+        </property>
+        <widget class="QWidget" name="">
          <property name="geometry">
           <rect>
-           <x>0</x>
-           <y>0</y>
-           <width>729</width>
-           <height>26</height>
+           <x>15</x>
+           <y>30</y>
+           <width>661</width>
+           <height>81</height>
           </rect>
          </property>
-         <property name="font">
-          <font>
-           <pointsize>14</pointsize>
-           <bold>true</bold>
-          </font>
+         <layout class="QGridLayout" name="gridLayout">
+          <property name="leftMargin">
+           <number>1</number>
+          </property>
+          <property name="topMargin">
+           <number>1</number>
+          </property>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_4">
+            <property name="text">
+             <string>Availability : </string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="lineEdit_6">
+            <property name="text">
+             <string>92.15 %</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="label_6">
+            <property name="text">
+             <string>Performance : </string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QLineEdit" name="lineEdit_4">
+            <property name="text">
+             <string>94.44 %</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_5">
+            <property name="text">
+             <string>Quality : </string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="lineEdit_5">
+            <property name="text">
+             <string>95.40 %</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLabel" name="label_7">
+            <property name="text">
+             <string>OEE : </string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QLineEdit" name="lineEdit_7">
+            <property name="text">
+             <string>82.96 %</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+       <widget class="QGroupBox" name="groupBox">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>20</y>
+          <width>681</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="title">
+         <string>Current Order</string>
+        </property>
+        <widget class="QLabel" name="currentStateLabel">
+         <property name="geometry">
+          <rect>
+           <x>221</x>
+           <y>20</y>
+           <width>30</width>
+           <height>21</height>
+          </rect>
          </property>
          <property name="text">
-          <string>Labelling Station MES Dashboard</string>
+          <string>State:</string>
          </property>
-         <property name="alignment">
-          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+        </widget>
+        <widget class="QLineEdit" name="currentStateLine">
+         <property name="geometry">
+          <rect>
+           <x>93</x>
+           <y>20</y>
+           <width>123</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>1202</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="currentOrderLabel">
+         <property name="geometry">
+          <rect>
+           <x>50</x>
+           <y>20</y>
+           <width>38</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Order:</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="currentOrderLine">
+         <property name="geometry">
+          <rect>
+           <x>256</x>
+           <y>20</y>
+           <width>122</width>
+           <height>21</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>Busy</string>
          </property>
         </widget>
        </widget>
-       <widget class="QWidget" name="oeeTab">
-        <attribute name="title">
-         <string>Current Order and OEE</string>
-        </attribute>
-       </widget>
       </widget>
-     </item>
-    </layout>
-   </widget>
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="geometry">
+        <rect>
+         <x>19</x>
+         <y>30</y>
+         <width>441</width>
+         <height>228</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>Active Orders</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QTableWidget" name="tableWidget">
+          <row>
+           <property name="text">
+            <string>1</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>2</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>3</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>4</string>
+           </property>
+          </row>
+          <row>
+           <property name="text">
+            <string>5</string>
+           </property>
+          </row>
+          <column>
+           <property name="text">
+            <string>Order ID</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Product Name</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Planned Quantity</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>New Status</string>
+           </property>
+          </column>
+          <item row="0" column="0">
+           <property name="text">
+            <string>1201</string>
+           </property>
+          </item>
+          <item row="0" column="1">
+           <property name="text">
+            <string>Phone A</string>
+           </property>
+          </item>
+          <item row="0" column="2">
+           <property name="text">
+            <string>2</string>
+           </property>
+          </item>
+          <item row="0" column="3">
+           <property name="text">
+            <string>Active</string>
+           </property>
+          </item>
+          <item row="1" column="0">
+           <property name="text">
+            <string>1202</string>
+           </property>
+          </item>
+          <item row="1" column="1">
+           <property name="text">
+            <string>Phone B</string>
+           </property>
+          </item>
+          <item row="1" column="2">
+           <property name="text">
+            <string>3</string>
+           </property>
+          </item>
+          <item row="1" column="3">
+           <property name="text">
+            <string>Active</string>
+           </property>
+          </item>
+          <item row="2" column="0">
+           <property name="text">
+            <string>1203</string>
+           </property>
+          </item>
+          <item row="2" column="1">
+           <property name="text">
+            <string>Phone C</string>
+           </property>
+          </item>
+          <item row="2" column="2">
+           <property name="text">
+            <string>1</string>
+           </property>
+          </item>
+          <item row="2" column="3">
+           <property name="text">
+            <string>Waiting</string>
+           </property>
+          </item>
+          <item row="3" column="0">
+           <property name="text">
+            <string>1204</string>
+           </property>
+          </item>
+          <item row="3" column="1">
+           <property name="text">
+            <string>Phone D</string>
+           </property>
+          </item>
+          <item row="3" column="2">
+           <property name="text">
+            <string>3</string>
+           </property>
+          </item>
+          <item row="3" column="3">
+           <property name="text">
+            <string>Busy</string>
+           </property>
+          </item>
+          <item row="4" column="0">
+           <property name="text">
+            <string>1205</string>
+           </property>
+          </item>
+          <item row="4" column="1">
+           <property name="text">
+            <string>Phone E</string>
+           </property>
+          </item>
+          <item row="4" column="2">
+           <property name="text">
+            <string>4</string>
+           </property>
+          </item>
+          <item row="4" column="3">
+           <property name="text">
+            <string>Queued</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>767</width>
      <height>22</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuLabeling_Station_MES">
+    <property name="title">
+     <string>Labeling Station MES</string>
+    </property>
+   </widget>
+   <addaction name="menuLabeling_Station_MES"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
