@@ -18,7 +18,6 @@ NODE_IDS = {
 
 STATE_MAP = {
     0: "IDLE",
-    1: "WAITING",
-    2: "BUSY",
-    3: "ERROR",
+    1: "ACTIVE",
+    2: "DONE",
 }
