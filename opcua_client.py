@@ -1,15 +1,5 @@
-from opcua import Client
-from config import OPCUA_URL
-
-
-NODE_IDS = {
-    "current_order_id": 'ns=3;s="OPCUA_data"."current_order_id"',
-    "station_state": 'ns=3;s="OPCUA_data"."station_state"',
-    "run_time": 'ns=3;s="OPCUA_data"."run_time"',
-    "total_count": 'ns=3;s="OPCUA_data"."total_count"',
-    "good_count": 'ns=3;s="OPCUA_data"."good_count"',
-    "completion_status": 'ns=3;s="OPCUA_data"."completion_status"',
-}
+from opcua import Client, ua
+from config import OPCUA_URL, NODE_IDS
 
 
 class OPCUAClient:
@@ -24,8 +14,19 @@ class OPCUAClient:
             for name, node_id in NODE_IDS.items()
         }
 
-    def read(self):
-        return {name: node.get_value() for name, node in self.nodes.items()}
+    def read_all(self):
+        return {
+            name: node.get_value()
+            for name, node in self.nodes.items()
+        }
+
+    def write_bool(self, node_name, value: bool):
+        node = self.nodes[node_name]
+        node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.Boolean)))
+
+    def write_string(self, node_name, value: str):
+        node = self.nodes[node_name]
+        node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.String)))
 
     def disconnect(self):
         self.client.disconnect()
