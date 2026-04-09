@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LabelProMax MES</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <meta http-equiv="refresh" content="1">
+    <meta http-equiv="refresh" content="60">
 </head>
 <body>
     <div class="header">LabelProMax MES Dashboard</div>
@@ -27,8 +27,8 @@
         </div>
 
         <div class="card">
-            <h3>Run Time (s)</h3>
-            <div class="value">{{ data.run_time }}</div>
+            <h3>Run Time (min)</h3>
+            <div class="value">{{ data.run_time_min }}</div>
         </div>
 
         <div class="card">
@@ -64,7 +64,7 @@
         <div class="card full-width">
             <h3>Printer</h3>
             <form action="/print_label" method="post">
-                <input type="text" name="label_text" placeholder="Enter label text" value="{{ data.label_text }}">
+                <input type="text" name="label_text" placeholder="Enter label text">
                 <button type="submit">Send to Printer</button>
             </form>
             <p>Print Status: <strong>{{ data.print_status }}</strong></p>
