@@ -8,13 +8,20 @@
 </head>
 <body>
     <div class="header">
-        LabelProMax — Order History
-        <a href="/" class="header-link">← Back to Dashboard</a>
+        <span>LabelProMax MES — Order History</span>
+        <div class="header-right">
+            {% if role == "operator" %}
+            <a href="/" class="header-link">← Dashboard</a>
+            {% else %}
+            <a href="/viewer" class="header-link">← Viewer</a>
+            {% endif %}
+            <a href="/logout" class="header-link logout">Sign Out</a>
+        </div>
     </div>
 
     <div class="container">
 
-        <!-- Aggregate totals across all orders -->
+        <!-- Aggregate totals -->
         <div class="card full-width">
             <h3>All-Time Totals</h3>
             <div class="totals-grid">
@@ -88,7 +95,7 @@
                 </tbody>
             </table>
             {% else %}
-            <p>No completed orders yet.</p>
+            <p class="muted">No completed orders yet.</p>
             {% endif %}
         </div>
 

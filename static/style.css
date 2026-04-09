@@ -5,10 +5,13 @@ body {
     color: #e6edf3;
 }
 
+/* --------------------------------------------------------
+   Header
+-------------------------------------------------------- */
 .header {
     background: #081320;
     padding: 18px 28px;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     border-bottom: 1px solid #24364d;
     display: flex;
@@ -16,8 +19,14 @@ body {
     align-items: center;
 }
 
+.header-right {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
 .header-link {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: normal;
     color: #2d8cff;
     text-decoration: none;
@@ -27,6 +36,31 @@ body {
     text-decoration: underline;
 }
 
+.header-link.logout {
+    color: #ff6b6b;
+}
+
+.role-tag {
+    font-size: 13px;
+    font-weight: normal;
+    padding: 3px 10px;
+    border-radius: 12px;
+    vertical-align: middle;
+}
+
+.operator-tag {
+    background: #1a4a8a;
+    color: #9fc4ff;
+}
+
+.viewer-tag {
+    background: #1a4a3a;
+    color: #7de8b0;
+}
+
+/* --------------------------------------------------------
+   Dashboard grid
+-------------------------------------------------------- */
 .container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -52,16 +86,37 @@ body {
     font-weight: bold;
 }
 
+.value.good { color: #7de8b0; }
+.value.bad  { color: #ff6b6b; }
+
 .full-width {
     grid-column: span 4;
 }
 
-input[type="text"] {
-    width: 300px;
+.muted {
+    color: #6a8aaa;
+    font-size: 14px;
+}
+
+/* --------------------------------------------------------
+   Forms
+-------------------------------------------------------- */
+input[type="text"],
+input[type="number"],
+input[type="password"] {
     padding: 10px;
-    margin-right: 10px;
     border-radius: 6px;
-    border: none;
+    border: 1px solid #24364d;
+    background: #0b1a2a;
+    color: #e6edf3;
+    font-size: 14px;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus {
+    outline: none;
+    border-color: #2d8cff;
 }
 
 button {
@@ -71,9 +126,93 @@ button {
     color: white;
     border-radius: 6px;
     cursor: pointer;
+    font-size: 14px;
 }
 
-/* Totals grid */
+button:hover {
+    background: #1a6fe0;
+}
+
+.order-form .form-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-field label {
+    font-size: 12px;
+    color: #9fc4ff;
+}
+
+.form-field input {
+    width: 180px;
+}
+
+.form-field-btn {
+    justify-content: flex-end;
+}
+
+/* --------------------------------------------------------
+   Status badges
+-------------------------------------------------------- */
+.status-badge {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-badge.queued {
+    background: #1a3a5a;
+    color: #9fc4ff;
+}
+
+.status-badge.active {
+    background: #1a4a3a;
+    color: #7de8b0;
+}
+
+.status-badge.completed {
+    background: #1a2a1a;
+    color: #5aaa5a;
+}
+
+/* --------------------------------------------------------
+   Tables
+-------------------------------------------------------- */
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.history-table th {
+    text-align: left;
+    padding: 10px 12px;
+    color: #9fc4ff;
+    border-bottom: 1px solid #24364d;
+}
+
+.history-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #1a3048;
+}
+
+.history-table tr:hover td {
+    background: #1a3048;
+}
+
+/* --------------------------------------------------------
+   Totals grid
+-------------------------------------------------------- */
 .totals-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -100,26 +239,90 @@ button {
     font-weight: bold;
 }
 
-/* History table */
-.history-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
+/* --------------------------------------------------------
+   Login page
+-------------------------------------------------------- */
+.login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-box {
+    background: #12263a;
+    border-radius: 12px;
+    padding: 40px;
+    width: 360px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.4);
+}
+
+.login-title {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.login-subtitle {
     font-size: 14px;
+    color: #6a8aaa;
+    margin-bottom: 28px;
 }
 
-.history-table th {
-    text-align: left;
-    padding: 10px 12px;
+.login-error {
+    background: #3a1a1a;
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.login-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.login-field label {
+    font-size: 13px;
     color: #9fc4ff;
-    border-bottom: 1px solid #24364d;
 }
 
-.history-table td {
-    padding: 10px 12px;
-    border-bottom: 1px solid #1a3048;
+.login-field input {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 15px;
 }
 
-.history-table tr:hover td {
-    background: #1a3048;
+.login-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    margin-top: 8px;
+}
+
+.login-roles {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+    justify-content: center;
+}
+
+.role-badge {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+}
+
+.role-badge.operator {
+    background: #1a4a8a;
+    color: #9fc4ff;
+}
+
+.role-badge.viewer {
+    background: #1a4a3a;
+    color: #7de8b0;
 }

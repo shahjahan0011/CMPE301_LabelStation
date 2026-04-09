@@ -2,7 +2,7 @@ OPCUA_URL = "opc.tcp://172.21.9.1:4840"
 
 DB_PATH = "mes.db"
 
-POLL_INTERVAL = 60.0  # seconds — poll once per minute so the dashboard refresh doesn't interrupt typing
+POLL_INTERVAL = 60.0  # seconds
 
 NODE_IDS = {
     "current_order_id": 'ns=3;s="DB_MES_Comms"."current_order_id"',

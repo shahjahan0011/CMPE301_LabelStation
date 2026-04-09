@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LabelProMax MES — Operator</title>
+    <title>LabelProMax MES — Viewer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <meta http-equiv="refresh" content="60">
 </head>
 <body>
     <div class="header">
-        <span>LabelProMax MES — <span class="role-tag operator-tag">Operator</span></span>
+        <span>LabelProMax MES — <span class="role-tag viewer-tag">Viewer</span></span>
         <div class="header-right">
             <a href="/history" class="header-link">Order History</a>
             <a href="/logout" class="header-link logout">Sign Out</a>
@@ -71,37 +71,9 @@
             <div class="value">{{ data.oee }}%</div>
         </div>
 
-        <!-- Add order to queue -->
+        <!-- Upcoming queue -->
         <div class="card full-width">
-            <h3>Add Order to Queue</h3>
-            <form action="/add_order" method="post" class="order-form">
-                <div class="form-row">
-                    <div class="form-field">
-                        <label>Product Name</label>
-                        <input type="text" name="product_name" placeholder="e.g. Phone_Model_X">
-                    </div>
-                    <div class="form-field">
-                        <label>Planned Qty</label>
-                        <input type="number" name="planned_quantity" value="1" min="1">
-                    </div>
-                    <div class="form-field">
-                        <label>Planned Production Time (s)</label>
-                        <input type="number" name="planned_production_time" value="60" min="1">
-                    </div>
-                    <div class="form-field">
-                        <label>Ideal Cycle Time (s)</label>
-                        <input type="number" name="ideal_cycle_time" value="1" min="0.1" step="0.1">
-                    </div>
-                    <div class="form-field form-field-btn">
-                        <button type="submit">Add to Queue</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <!-- Order queue -->
-        <div class="card full-width">
-            <h3>Order Queue</h3>
+            <h3>Upcoming Order Queue</h3>
             {% if queue %}
             <table class="history-table">
                 <thead>
@@ -110,7 +82,6 @@
                         <th>Product</th>
                         <th>Planned Qty</th>
                         <th>Planned Time (s)</th>
-                        <th>Ideal Cycle (s)</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -121,31 +92,14 @@
                         <td>{{ o.product_name }}</td>
                         <td>{{ o.planned_quantity }}</td>
                         <td>{{ o.planned_production_time }}</td>
-                        <td>{{ o.ideal_cycle_time }}</td>
                         <td><span class="status-badge queued">Queued</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
             {% else %}
-            <p class="muted">No orders in queue.</p>
+            <p class="muted">No orders currently queued.</p>
             {% endif %}
-        </div>
-
-        <!-- Printer -->
-        <div class="card full-width">
-            <h3>Printer</h3>
-            <form action="/print_label" method="post">
-                <input type="text" name="label_text" placeholder="Enter label text">
-                <button type="submit">Send to Printer</button>
-            </form>
-            <p>Print Status: <strong>{{ data.print_status }}</strong></p>
-        </div>
-
-        <!-- System message -->
-        <div class="card full-width">
-            <h3>System Message</h3>
-            <p>{{ data.message or "—" }}</p>
         </div>
 
     </div>

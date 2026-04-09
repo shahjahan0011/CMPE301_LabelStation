@@ -2,6 +2,11 @@ import sqlite3
 from datetime import datetime
 from config import DB_PATH
 
+USERS = {
+    "operator": {"password": "operator123", "role": "operator"},
+    "viewer":   {"password": "viewer123",   "role": "viewer"},
+}
+
 
 def get_conn():
     conn = sqlite3.connect(DB_PATH)
@@ -13,12 +18,12 @@ def init_db():
     with get_conn() as conn:
         conn.execute("""
         CREATE TABLE IF NOT EXISTS production_orders (
-            order_id INTEGER PRIMARY KEY,
+            order_id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_name TEXT NOT NULL DEFAULT '',
             planned_quantity INTEGER NOT NULL DEFAULT 1,
             planned_production_time REAL NOT NULL DEFAULT 60.0,
             ideal_cycle_time REAL NOT NULL DEFAULT 1.0,
-            status TEXT NOT NULL DEFAULT 'active',
+            status TEXT NOT NULL DEFAULT 'queued',
             start_timestamp TEXT,
             end_timestamp TEXT
         )
@@ -41,7 +46,6 @@ def init_db():
         )
         """)
 
-        # Final summary record written once per completed order
         conn.execute("""
         CREATE TABLE IF NOT EXISTS order_summary (
             summary_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,30 +63,62 @@ def init_db():
         """)
 
 
-def ensure_order_exists(order_id: int):
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT order_id FROM production_orders WHERE order_id = ?",
-            (order_id,)
-        ).fetchone()
+# ------------------------------------------------------------------
+# Order queue management
+# ------------------------------------------------------------------
 
-        if row is None:
+def add_order_to_queue(product_name, planned_quantity, planned_production_time, ideal_cycle_time):
+    """Add a new order to the queue. Returns the new order_id."""
+    with get_conn() as conn:
+        cur = conn.execute("""
+            INSERT INTO production_orders (
+                product_name, planned_quantity,
+                planned_production_time, ideal_cycle_time,
+                status
+            ) VALUES (?, ?, ?, ?, 'queued')
+        """, (product_name, planned_quantity, planned_production_time, ideal_cycle_time))
+        return cur.lastrowid
+
+
+def get_queued_orders():
+    """Return all orders currently in the queue (not yet started), oldest first."""
+    with get_conn() as conn:
+        return conn.execute("""
+            SELECT * FROM production_orders
+            WHERE status = 'queued'
+            ORDER BY order_id ASC
+        """).fetchall()
+
+
+def pop_next_order():
+    """Mark the oldest queued order as active and return it."""
+    with get_conn() as conn:
+        row = conn.execute("""
+            SELECT * FROM production_orders
+            WHERE status = 'queued'
+            ORDER BY order_id ASC
+            LIMIT 1
+        """).fetchone()
+
+        if row:
             conn.execute("""
-                INSERT INTO production_orders (
-                    order_id, product_name, planned_quantity,
-                    planned_production_time, ideal_cycle_time,
-                    status, start_timestamp
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                order_id,
-                f"Phone_{order_id}",
-                1,
-                60.0,
-                1.0,
-                "active",
-                datetime.now().isoformat()
-            ))
+                UPDATE production_orders
+                SET status = 'active', start_timestamp = ?
+                WHERE order_id = ?
+            """, (datetime.now().isoformat(), row["order_id"]))
+
+        return row
+
+
+def get_active_order():
+    """Return the currently active order if one exists."""
+    with get_conn() as conn:
+        return conn.execute("""
+            SELECT * FROM production_orders
+            WHERE status = 'active'
+            ORDER BY order_id DESC
+            LIMIT 1
+        """).fetchone()
 
 
 def get_order(order_id: int):
@@ -97,11 +133,14 @@ def complete_order(order_id: int):
     with get_conn() as conn:
         conn.execute("""
             UPDATE production_orders
-            SET status = 'completed',
-                end_timestamp = ?
+            SET status = 'completed', end_timestamp = ?
             WHERE order_id = ?
         """, (datetime.now().isoformat(), order_id))
 
+
+# ------------------------------------------------------------------
+# OEE records
+# ------------------------------------------------------------------
 
 def insert_oee_record(order_id, runtime, total_count, good_count, state,
                       availability, performance, quality, oee_value):
@@ -122,14 +161,12 @@ def insert_oee_record(order_id, runtime, total_count, good_count, state,
             availability,
             performance,
             quality,
-            oee_value
+            oee_value,
         ))
 
 
 def insert_order_summary(order_id, total_runtime, total_count, good_count,
                          availability, performance, quality, oee_value):
-    """Write one final summary row when an order completes.
-    Uses INSERT OR IGNORE so re-triggers of the completion latch don't duplicate."""
     with get_conn() as conn:
         conn.execute("""
             INSERT OR IGNORE INTO order_summary (
@@ -146,12 +183,11 @@ def insert_order_summary(order_id, total_runtime, total_count, good_count,
             availability,
             performance,
             quality,
-            oee_value
+            oee_value,
         ))
 
 
 def get_all_order_summaries():
-    """Return all completed order summaries newest-first."""
     with get_conn() as conn:
         return conn.execute("""
             SELECT * FROM order_summary
@@ -160,14 +196,13 @@ def get_all_order_summaries():
 
 
 def get_aggregate_totals():
-    """Aggregate metrics across all completed orders."""
     with get_conn() as conn:
         row = conn.execute("""
             SELECT
-                COUNT(*)                    AS orders_completed,
-                SUM(total_count)            AS total_parts,
-                SUM(good_count)             AS total_good_parts,
-                SUM(total_runtime)          AS total_runtime_seconds,
+                COUNT(*)                          AS orders_completed,
+                SUM(total_count)                  AS total_parts,
+                SUM(good_count)                   AS total_good_parts,
+                SUM(total_runtime)                AS total_runtime_seconds,
                 ROUND(AVG(availability) * 100, 2) AS avg_availability,
                 ROUND(AVG(performance)  * 100, 2) AS avg_performance,
                 ROUND(AVG(quality)      * 100, 2) AS avg_quality,

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LabelProMax — Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-box">
+            <div class="login-title">LabelProMax MES</div>
+            <div class="login-subtitle">Sign in to continue</div>
+
+            {% if error %}
+            <div class="login-error">{{ error }}</div>
+            {% endif %}
+
+            <form action="/login" method="post">
+                <div class="login-field">
+                    <label>Username</label>
+                    <input type="text" name="username" placeholder="Enter username" autofocus>
+                </div>
+                <div class="login-field">
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="Enter password">
+                </div>
+                <button type="submit" class="login-btn">Sign In</button>
+            </form>
+
+            <div class="login-roles">
+                <div class="role-badge operator">Operator — full access</div>
+                <div class="role-badge viewer">Viewer — read only</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
