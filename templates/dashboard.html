@@ -74,6 +74,7 @@
         <!-- Add order to queue -->
         <div class="card full-width">
             <h3>Add Order to Queue</h3>
+            <p class="muted" style="margin-bottom: 12px;">Planned production time is auto-calculated: quantity × ideal cycle time.</p>
             <form action="/add_order" method="post" class="order-form">
                 <div class="form-row">
                     <div class="form-field">
@@ -85,12 +86,8 @@
                         <input type="number" name="planned_quantity" value="1" min="1">
                     </div>
                     <div class="form-field">
-                        <label>Planned Production Time (s)</label>
-                        <input type="number" name="planned_production_time" value="60" min="1">
-                    </div>
-                    <div class="form-field">
                         <label>Ideal Cycle Time (s)</label>
-                        <input type="number" name="ideal_cycle_time" value="1" min="0.1" step="0.1">
+                        <input type="number" name="ideal_cycle_time" value="11.5" min="0.1" step="0.1">
                     </div>
                     <div class="form-field form-field-btn">
                         <button type="submit">Add to Queue</button>
@@ -109,8 +106,8 @@
                         <th>Order ID</th>
                         <th>Product</th>
                         <th>Planned Qty</th>
-                        <th>Planned Time (s)</th>
                         <th>Ideal Cycle (s)</th>
+                        <th>Planned Time (s)</th>
                         <th>Status</th>
                     </tr>
                 </thead>
@@ -120,8 +117,8 @@
                         <td>{{ o.order_id }}</td>
                         <td>{{ o.product_name }}</td>
                         <td>{{ o.planned_quantity }}</td>
-                        <td>{{ o.planned_production_time }}</td>
                         <td>{{ o.ideal_cycle_time }}</td>
+                        <td>{{ o.planned_production_time }}</td>
                         <td><span class="status-badge queued">Queued</span></td>
                     </tr>
                     {% endfor %}
@@ -139,7 +136,7 @@
                 <input type="text" name="label_text" placeholder="Enter label text">
                 <button type="submit">Send to Printer</button>
             </form>
-            <p>Print Status: <strong>{{ data.print_status }}</strong></p>
+            <p style="margin-top: 10px;">Print Status: <strong>{{ data.print_status }}</strong></p>
         </div>
 
         <!-- System message -->

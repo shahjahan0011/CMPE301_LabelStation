@@ -1,19 +1,19 @@
 def compute_availability(runtime, planned_production_time):
     if planned_production_time <= 0:
         return 0.0
-    return runtime / planned_production_time
+    return min(runtime / planned_production_time, 1.0)
 
 
 def compute_performance(ideal_cycle_time, total_count, runtime):
     if runtime <= 0:
         return 0.0
-    return (ideal_cycle_time * total_count) / runtime
+    return min((ideal_cycle_time * total_count) / runtime, 1.0)
 
 
 def compute_quality(good_count, total_count):
     if total_count <= 0:
         return 0.0
-    return good_count / total_count
+    return min(good_count / total_count, 1.0)
 
 
 def compute_oee(runtime, planned_production_time, ideal_cycle_time, total_count, good_count):

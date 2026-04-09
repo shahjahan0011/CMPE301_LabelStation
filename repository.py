@@ -7,10 +7,16 @@ USERS = {
     "viewer":   {"password": "viewer123",   "role": "viewer"},
 }
 
+IDEAL_CYCLE_TIME_DEFAULT = 11.5  # seconds — one labelling sequence
+
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
+    # check_same_thread=False required because Flask routes and the background
+    # thread both access the DB. SQLite handles this safely with WAL mode below.
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    # WAL mode gives better concurrent read/write performance
+    conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
 
@@ -21,8 +27,8 @@ def init_db():
             order_id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_name TEXT NOT NULL DEFAULT '',
             planned_quantity INTEGER NOT NULL DEFAULT 1,
-            planned_production_time REAL NOT NULL DEFAULT 60.0,
-            ideal_cycle_time REAL NOT NULL DEFAULT 1.0,
+            planned_production_time REAL NOT NULL DEFAULT 11.5,
+            ideal_cycle_time REAL NOT NULL DEFAULT 11.5,
             status TEXT NOT NULL DEFAULT 'queued',
             start_timestamp TEXT,
             end_timestamp TEXT
@@ -67,8 +73,11 @@ def init_db():
 # Order queue management
 # ------------------------------------------------------------------
 
-def add_order_to_queue(product_name, planned_quantity, planned_production_time, ideal_cycle_time):
-    """Add a new order to the queue. Returns the new order_id."""
+def add_order_to_queue(product_name, planned_quantity, ideal_cycle_time=IDEAL_CYCLE_TIME_DEFAULT):
+    """Add a new order to the queue.
+    planned_production_time is auto-calculated from quantity × ideal_cycle_time.
+    Returns the new order_id."""
+    planned_production_time = planned_quantity * ideal_cycle_time
     with get_conn() as conn:
         cur = conn.execute("""
             INSERT INTO production_orders (
@@ -139,7 +148,7 @@ def complete_order(order_id: int):
 
 
 # ------------------------------------------------------------------
-# OEE records
+# OEE records — only written at completion, not every poll
 # ------------------------------------------------------------------
 
 def insert_oee_record(order_id, runtime, total_count, good_count, state,
@@ -167,6 +176,8 @@ def insert_oee_record(order_id, runtime, total_count, good_count, state,
 
 def insert_order_summary(order_id, total_runtime, total_count, good_count,
                          availability, performance, quality, oee_value):
+    """Write one final summary row when an order completes.
+    INSERT OR IGNORE prevents duplicates if completion fires more than once."""
     with get_conn() as conn:
         conn.execute("""
             INSERT OR IGNORE INTO order_summary (

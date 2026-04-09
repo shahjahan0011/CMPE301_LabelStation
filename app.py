@@ -46,19 +46,28 @@ live_data = {
 }
 
 completion_latched = False
-
 _last_plc_runtime = 0.0
 _accumulated_runtime = 0.0
 _frozen_oee = None
-
-# PLC state tracking for IDLE->ACTIVE transition detection
 _last_station_state_raw = -1
-
-# Count tracking — we track deltas so counts accumulate correctly per order
 _last_total_count = 0
 _last_good_count = 0
 _order_total_count = 0
 _order_good_count = 0
+
+
+def restore_active_order():
+    """On startup, check if there's already an active order in the DB
+    (e.g. app restarted mid-run) and restore it into live_data so we
+    don't lose the current order on restart."""
+    global _last_station_state_raw
+    active = get_active_order()
+    if active:
+        live_data["current_order_id"] = active["order_id"]
+        # Set last state to ACTIVE (1) so the IDLE->ACTIVE transition
+        # doesn't fire again and double-pop the queue
+        _last_station_state_raw = 1
+        live_data["message"] = f"Restored active order {active['order_id']} after restart."
 
 
 def background_loop():
@@ -85,11 +94,9 @@ def background_loop():
             # Detect IDLE -> ACTIVE transition: pop next queued order
             # ----------------------------------------------------------------
             if _last_station_state_raw != 1 and station_state_raw == 1:
-                # Station just went active — start the next queued order
                 next_order = pop_next_order()
                 if next_order:
                     live_data["current_order_id"] = next_order["order_id"]
-                    # Reset all per-order accumulators
                     _accumulated_runtime = 0.0
                     _last_plc_runtime = plc_runtime
                     _frozen_oee = None
@@ -102,7 +109,7 @@ def background_loop():
             _last_station_state_raw = station_state_raw
 
             # ----------------------------------------------------------------
-            # Accumulate runtime
+            # Accumulate runtime — bank value when PLC counter resets
             # ----------------------------------------------------------------
             if plc_runtime < _last_plc_runtime:
                 _accumulated_runtime += _last_plc_runtime
@@ -110,19 +117,13 @@ def background_loop():
             total_runtime = _accumulated_runtime + plc_runtime
 
             # ----------------------------------------------------------------
-            # Accumulate counts — track deltas from PLC so resets don't zero out
+            # Accumulate counts — track deltas so PLC resets don't zero out
             # ----------------------------------------------------------------
-            total_delta = max(0, plc_total_count - _last_total_count)
-            good_delta = max(0, plc_good_count - _last_good_count)
+            if plc_total_count >= _last_total_count:
+                _order_total_count += plc_total_count - _last_total_count
+            if plc_good_count >= _last_good_count:
+                _order_good_count += plc_good_count - _last_good_count
 
-            # If PLC counters reset, just bank what we had
-            if plc_total_count < _last_total_count:
-                total_delta = 0
-            if plc_good_count < _last_good_count:
-                good_delta = 0
-
-            _order_total_count += total_delta
-            _order_good_count += good_delta
             _last_total_count = plc_total_count
             _last_good_count = plc_good_count
 
@@ -150,20 +151,35 @@ def background_loop():
                     planned_production_time = float(order["planned_production_time"])
                     ideal_cycle_time = float(order["ideal_cycle_time"])
 
-                    if not completion_latched:
-                        oee_data = compute_oee(
-                            runtime=total_runtime,
-                            planned_production_time=planned_production_time,
-                            ideal_cycle_time=ideal_cycle_time,
-                            total_count=_order_total_count,
-                            good_count=_order_good_count,
-                        )
+                    # Always compute oee_data so it's available for the
+                    # completion block below regardless of latch state
+                    oee_data = compute_oee(
+                        runtime=total_runtime,
+                        planned_production_time=planned_production_time,
+                        ideal_cycle_time=ideal_cycle_time,
+                        total_count=_order_total_count,
+                        good_count=_order_good_count,
+                    )
 
+                    if not completion_latched:
                         live_data["availability"] = round(oee_data["availability"] * 100, 2)
                         live_data["performance"] = round(oee_data["performance"] * 100, 2)
                         live_data["quality"] = round(oee_data["quality"] * 100, 2)
                         live_data["oee"] = round(oee_data["oee"] * 100, 2)
 
+                    # Completion latch — runs only once per order
+                    if completion_status and not completion_latched:
+                        complete_order(current_order_id)
+                        completion_latched = True
+
+                        _frozen_oee = {
+                            "availability": live_data["availability"],
+                            "performance": live_data["performance"],
+                            "quality": live_data["quality"],
+                            "oee": live_data["oee"],
+                        }
+
+                        # Write the final OEE record and summary once at completion
                         insert_oee_record(
                             order_id=current_order_id,
                             runtime=total_runtime,
@@ -176,17 +192,6 @@ def background_loop():
                             oee_value=oee_data["oee"],
                         )
 
-                    if completion_status and not completion_latched:
-                        complete_order(current_order_id)
-                        completion_latched = True
-
-                        _frozen_oee = {
-                            "availability": live_data["availability"],
-                            "performance": live_data["performance"],
-                            "quality": live_data["quality"],
-                            "oee": live_data["oee"],
-                        }
-
                         insert_order_summary(
                             order_id=current_order_id,
                             total_runtime=total_runtime,
@@ -198,10 +203,12 @@ def background_loop():
                             oee_value=oee_data["oee"],
                         )
 
+                    # Reset latch when completion signal clears
                     if not completion_status:
                         completion_latched = False
                         _frozen_oee = None
 
+                    # Hold frozen OEE on screen after completion
                     if completion_latched and _frozen_oee:
                         live_data["availability"] = _frozen_oee["availability"]
                         live_data["performance"] = _frozen_oee["performance"]
@@ -285,15 +292,26 @@ def add_order():
     try:
         product_name = request.form.get("product_name", "").strip()
         planned_quantity = int(request.form.get("planned_quantity", 1))
-        planned_production_time = float(request.form.get("planned_production_time", 60.0))
-        ideal_cycle_time = float(request.form.get("ideal_cycle_time", 1.0))
+        ideal_cycle_time = float(request.form.get("ideal_cycle_time", 11.5))
 
         if not product_name:
             live_data["message"] = "Product name cannot be empty."
             return redirect("/")
 
-        add_order_to_queue(product_name, planned_quantity, planned_production_time, ideal_cycle_time)
-        live_data["message"] = f"Order for '{product_name}' added to queue."
+        if planned_quantity < 1:
+            live_data["message"] = "Planned quantity must be at least 1."
+            return redirect("/")
+
+        if ideal_cycle_time <= 0:
+            live_data["message"] = "Ideal cycle time must be greater than 0."
+            return redirect("/")
+
+        order_id = add_order_to_queue(product_name, planned_quantity, ideal_cycle_time)
+        planned_time = planned_quantity * ideal_cycle_time
+        live_data["message"] = (
+            f"Order #{order_id} for '{product_name}' added — "
+            f"{planned_quantity} parts × {ideal_cycle_time}s = {planned_time:.0f}s planned."
+        )
     except Exception as exc:
         live_data["message"] = f"Error adding order: {exc}"
     return redirect("/")
@@ -346,6 +364,7 @@ def history():
 if __name__ == "__main__":
     init_db()
     opc.connect()
+    restore_active_order()
 
     thread = threading.Thread(target=background_loop, daemon=True)
     thread.start()
