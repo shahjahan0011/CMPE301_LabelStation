@@ -10,6 +10,9 @@ from repository import (
     get_order,
     complete_order,
     insert_oee_record,
+    insert_order_summary,
+    get_all_order_summaries,
+    get_aggregate_totals,
 )
 from oee import compute_oee
 from printer_service import print_label
@@ -22,8 +25,8 @@ live_data = {
     "connected": False,
     "current_order_id": 0,
     "station_state": "UNKNOWN",
-    "run_time": 0.0,          # accumulated runtime in seconds (for OEE math)
-    "run_time_min": 0.0,      # display value in minutes
+    "run_time": 0.0,        # accumulated runtime in seconds (for OEE math)
+    "run_time_min": 0.0,    # display value in minutes
     "total_count": 0,
     "good_count": 0,
     "completion_status": False,
@@ -137,10 +140,11 @@ def background_loop():
                             oee_value=oee_data["oee"],
                         )
 
-                    # Completion latch — mark order done and freeze OEE display
+                    # Completion latch — mark order done, freeze OEE, save summary
                     if completion_status and not completion_latched:
                         complete_order(current_order_id)
                         completion_latched = True
+
                         # Freeze the last good OEE so the dashboard keeps it
                         _frozen_oee = {
                             "availability": live_data["availability"],
@@ -148,6 +152,18 @@ def background_loop():
                             "quality": live_data["quality"],
                             "oee": live_data["oee"],
                         }
+
+                        # Save final summary record for this order
+                        insert_order_summary(
+                            order_id=current_order_id,
+                            total_runtime=total_runtime,
+                            total_count=total_count,
+                            good_count=good_count,
+                            availability=oee_data["availability"],
+                            performance=oee_data["performance"],
+                            quality=oee_data["quality"],
+                            oee_value=oee_data["oee"],
+                        )
 
                     if not completion_status:
                         completion_latched = False
@@ -170,6 +186,13 @@ def background_loop():
 @app.route("/")
 def dashboard():
     return render_template("dashboard.html", data=live_data)
+
+
+@app.route("/history")
+def history():
+    summaries = get_all_order_summaries()
+    totals = get_aggregate_totals()
+    return render_template("history.html", summaries=summaries, totals=totals)
 
 
 @app.route("/print_label", methods=["POST"])
