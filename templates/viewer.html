@@ -71,6 +71,25 @@
             <div class="value">{{ data.oee }}%</div>
         </div>
 
+        <!-- Active order -->
+        <div class="card full-width">
+            <h3>Active Order</h3>
+            {%- if active_order %}
+            <table class="history-table" style="margin-top: 0;">
+                <thead><tr><th>Order ID</th><th>Product</th><th>Label</th><th>Planned Qty</th><th>Status</th></tr></thead>
+                <tbody><tr>
+                    <td>{{ active_order.order_id }}</td>
+                    <td>{{ active_order.product_name }}</td>
+                    <td><strong>{{ active_order.label_text }}</strong></td>
+                    <td>{{ active_order.planned_quantity }}</td>
+                    <td><span class="status-badge active">Active</span></td>
+                </tr></tbody>
+            </table>
+            {%- else %}
+            <p class="muted">No order currently active.</p>
+            {%- endif %}
+        </div>
+
         <!-- Upcoming queue -->
         <div class="card full-width">
             <h3>Upcoming Order Queue</h3>
@@ -80,6 +99,7 @@
                     <tr>
                         <th>Order ID</th>
                         <th>Product</th>
+                        <th>Label</th>
                         <th>Planned Qty</th>
                         <th>Planned Time (s)</th>
                         <th>Status</th>
@@ -90,6 +110,7 @@
                     <tr>
                         <td>{{ o.order_id }}</td>
                         <td>{{ o.product_name }}</td>
+                        <td>{{ o.label_text }}</td>
                         <td>{{ o.planned_quantity }}</td>
                         <td>{{ o.planned_production_time }}</td>
                         <td><span class="status-badge queued">Queued</span></td>

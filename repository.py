@@ -26,6 +26,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS production_orders (
             order_id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_name TEXT NOT NULL DEFAULT '',
+            label_text TEXT NOT NULL DEFAULT '',
             planned_quantity INTEGER NOT NULL DEFAULT 1,
             planned_production_time REAL NOT NULL DEFAULT 11.5,
             ideal_cycle_time REAL NOT NULL DEFAULT 11.5,
@@ -34,6 +35,11 @@ def init_db():
             end_timestamp TEXT
         )
         """)
+        # Migrate existing DBs that don't have label_text yet
+        try:
+            conn.execute("ALTER TABLE production_orders ADD COLUMN label_text TEXT NOT NULL DEFAULT ''")
+        except Exception:
+            pass  # Column already exists
 
         conn.execute("""
         CREATE TABLE IF NOT EXISTS oee_records (
@@ -73,7 +79,7 @@ def init_db():
 # Order queue management
 # ------------------------------------------------------------------
 
-def add_order_to_queue(product_name, planned_quantity, ideal_cycle_time=IDEAL_CYCLE_TIME_DEFAULT):
+def add_order_to_queue(product_name, label_text, planned_quantity, ideal_cycle_time=IDEAL_CYCLE_TIME_DEFAULT):
     """Add a new order to the queue.
     planned_production_time is auto-calculated from quantity × ideal_cycle_time.
     Returns the new order_id."""
@@ -81,11 +87,11 @@ def add_order_to_queue(product_name, planned_quantity, ideal_cycle_time=IDEAL_CY
     with get_conn() as conn:
         cur = conn.execute("""
             INSERT INTO production_orders (
-                product_name, planned_quantity,
+                product_name, label_text, planned_quantity,
                 planned_production_time, ideal_cycle_time,
                 status
-            ) VALUES (?, ?, ?, ?, 'queued')
-        """, (product_name, planned_quantity, planned_production_time, ideal_cycle_time))
+            ) VALUES (?, ?, ?, ?, ?, 'queued')
+        """, (product_name, label_text, planned_quantity, planned_production_time, ideal_cycle_time))
         return cur.lastrowid
 
 
