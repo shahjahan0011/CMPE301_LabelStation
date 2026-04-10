@@ -1,3 +1,8 @@
+/* ═══════════════════════════════════════════
+   LabelProMax MES — Stylesheet
+   ═══════════════════════════════════════════ */
+
+/* ── Base ────────────────────────────────── */
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -5,14 +10,50 @@ body {
     color: #e6edf3;
 }
 
+/* ── Header ──────────────────────────────── */
 .header {
     background: #081320;
-    padding: 18px 28px;
-    font-size: 24px;
+    padding: 16px 28px;
+    font-size: 22px;
     font-weight: bold;
     border-bottom: 1px solid #24364d;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.nav-link {
+    color: #9fc4ff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: normal;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #1e3650;
+    transition: all 0.15s;
+}
+.nav-link:hover        { background: #12263a; border-color: #2d8cff; }
+.nav-logout            { border-color: #3a1c2a; color: #ff7a8a; }
+.nav-logout:hover      { background: #1a0e14; border-color: #c0394a; }
+
+/* ── Role Badge ──────────────────────────── */
+.role-badge {
+    font-size: 11px;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+}
+.role-operator { background: #1a3350; color: #2d8cff; border: 1px solid #2d5080; }
+.role-viewer   { background: #1a2a1a; color: #4caf76; border: 1px solid #2a4a2a; }
+
+/* ── Grid Layout ─────────────────────────── */
 .container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -20,17 +61,20 @@ body {
     padding: 20px;
 }
 
+/* ── Cards ───────────────────────────────── */
 .card {
     background: #12263a;
     border-radius: 10px;
-    padding: 16px;
+    padding: 18px;
     box-shadow: 0 0 8px rgba(0,0,0,0.25);
 }
 
 .card h3 {
     margin: 0 0 10px 0;
-    font-size: 15px;
+    font-size: 14px;
     color: #9fc4ff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .value {
@@ -38,23 +82,317 @@ body {
     font-weight: bold;
 }
 
-.full-width {
-    grid-column: span 4;
+.full-width  { grid-column: span 4; }
+.section-card { padding: 20px 24px; }
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.section-header h3 { margin: 0; }
+
+/* ── Status / State Colors ───────────────── */
+.status-ok    { color: #4cde7a; }
+.status-err   { color: #ff5a6e; }
+.state-active  { color: #4cde7a; }
+.state-idle    { color: #9fc4ff; }
+.state-done    { color: #f0c040; }
+.state-unknown { color: #6a8aaa; }
+
+/* ── Mode Badge ──────────────────────────── */
+.mode-badge {
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+}
+.mode-auto   { background: #0e2a1a; color: #4cde7a; border: 1px solid #2a6a3a; }
+.mode-manual { background: #2a1e08; color: #f0a040; border: 1px solid #6a4a10; }
+
+/* ── Order Info Grid ─────────────────────── */
+.order-info-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 18px;
+}
+.order-info-item {
+    background: #0d1e2e;
+    border-radius: 8px;
+    padding: 12px 16px;
+    border: 1px solid #1c3048;
+}
+.order-info-label {
+    display: block;
+    font-size: 11px;
+    color: #6a8aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+.order-info-val {
+    font-size: 18px;
+    font-weight: bold;
+    color: #e6edf3;
+    word-break: break-all;
 }
 
-input[type="text"] {
-    width: 300px;
-    padding: 10px;
-    margin-right: 10px;
+.mono { font-family: 'Courier New', monospace; }
+
+/* ── Progress Bar ────────────────────────── */
+.progress-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.progress-bar-track {
+    flex: 1;
+    height: 12px;
+    background: #0d1e2e;
     border-radius: 6px;
-    border: none;
+    overflow: hidden;
+    border: 1px solid #1c3048;
+}
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2d8cff, #4cde7a);
+    border-radius: 6px;
+    transition: width 0.4s ease;
+    min-width: 0;
+}
+.progress-pct {
+    font-size: 16px;
+    font-weight: bold;
+    color: #9fc4ff;
+    min-width: 46px;
+    text-align: right;
 }
 
-button {
-    padding: 10px 16px;
+/* ── Order Actions ───────────────────────── */
+.order-actions { margin-top: 4px; }
+
+.no-order {
+    color: #4a6a8a;
+    font-size: 15px;
+    padding: 20px 0 8px;
+}
+
+/* ── Create Order Form ───────────────────── */
+.create-order-form { display: flex; flex-direction: column; gap: 18px; }
+
+.form-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+}
+.form-group label {
+    font-size: 12px;
+    color: #9fc4ff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.form-group input[type="text"],
+.form-group input[type="number"] {
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid #1c3048;
+    background: #0d1e2e;
+    color: #e6edf3;
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+}
+.form-group input:focus { outline: none; border-color: #2d8cff; }
+
+/* ── Mode Toggle ─────────────────────────── */
+.mode-row          { align-items: center; gap: 16px; }
+.mode-toggle-label { font-size: 13px; color: #9fc4ff; white-space: nowrap; }
+.mode-option       { display: flex; align-items: center; cursor: pointer; }
+.mode-option input[type="radio"] { display: none; }
+
+.mode-opt-box {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 2px solid #1c3048;
+    font-size: 14px;
+    color: #6a8aaa;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+.mode-opt-box:hover { border-color: #2d8cff; color: #e6edf3; }
+.mode-option input:checked + .mode-opt-box.mode-auto   { border-color: #2a6a3a; background: #0e2a1a; color: #4cde7a; }
+.mode-option input:checked + .mode-opt-box.mode-manual { border-color: #6a4a10; background: #2a1e08; color: #f0a040; }
+
+/* ── Buttons ─────────────────────────────── */
+.btn-primary {
+    padding: 11px 22px;
     border: none;
     background: #2d8cff;
     color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.btn-primary:hover { background: #1a7ae0; }
+
+.btn-danger {
+    padding: 8px 16px;
+    border: 1px solid #c0394a;
+    background: #2a1020;
+    color: #ff7a8a;
     border-radius: 6px;
     cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+}
+.btn-danger:hover { background: #3a1428; }
+
+/* ── Manual Print ────────────────────────── */
+.print-form {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.print-form input[type="text"] {
+    flex: 1;
+    max-width: 420px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid #1c3048;
+    background: #0d1e2e;
+    color: #e6edf3;
+    font-size: 14px;
+    transition: border-color 0.15s;
+}
+.print-form input:focus   { outline: none; border-color: #2d8cff; }
+.print-status-line        { font-size: 14px; color: #6a8aaa; margin: 0; }
+
+/* ── Message Card ────────────────────────── */
+.message-card            { border-left: 3px solid #2d8cff; }
+.message-card p          { margin: 0; font-size: 14px; color: #9fc4ff; }
+
+/* ── Orders Table ────────────────────────── */
+.order-count { font-size: 13px; color: #4a6a8a; margin-left: auto; }
+.table-wrap  { overflow-x: auto; }
+
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+.orders-table th {
+    text-align: left;
+    padding: 10px 14px;
+    color: #9fc4ff;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #1c3048;
+    background: #0d1e2e;
+}
+.orders-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #1c3048;
+    color: #c8d8e8;
+}
+.orders-table tr:last-child td { border-bottom: none; }
+.orders-table tr:hover td      { background: #0f2030; }
+
+.label-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ts-cell    { font-size: 12px; color: #4a6a8a; font-family: 'Courier New', monospace; }
+
+.status-pill {
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+}
+.status-active    { background: #0e2a1a; color: #4cde7a; border: 1px solid #2a6a3a; }
+.status-completed { background: #1a2a3a; color: #9fc4ff; border: 1px solid #2a4a6a; }
+.status-cancelled { background: #2a1020; color: #ff7a8a; border: 1px solid #4a1a2a; }
+
+/* ── Mini Progress (table) ───────────────── */
+.mini-progress-wrap  { display: flex; align-items: center; gap: 8px; }
+.mini-progress-track { width: 80px; height: 6px; background: #0d1e2e; border-radius: 3px; overflow: hidden; }
+.mini-progress-fill  { height: 100%; background: linear-gradient(90deg, #2d8cff, #4cde7a); border-radius: 3px; }
+.mini-pct            { font-size: 12px; color: #6a8aaa; white-space: nowrap; }
+
+/* ── OEE Cards ───────────────────────────────────────── */
+.oee-val  { color: #9fc4ff; }
+.oee-big  { font-size: 36px; color: #4cde7a; }
+
+.oee-highlight {
+    border: 1px solid #2a6a3a;
+    background: #0e2010;
+}
+.oee-highlight h3 { color: #4cde7a; }
+
+.btn-ghost {
+    display: inline-block;
+    padding: 8px 16px;
+    border: 1px solid #1e3650;
+    color: #9fc4ff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 13px;
+    margin-left: 10px;
+    transition: all 0.15s;
+}
+.btn-ghost:hover { background: #12263a; border-color: #2d8cff; }
+
+/* ── Completed Order Banner ──────────────────────────── */
+.completed-banner {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: #0a2015;
+    border: 1px solid #2a6a3a;
+    border-left: 4px solid #4cde7a;
+    padding: 18px 24px;
+}
+.completed-icon {
+    font-size: 36px;
+    color: #4cde7a;
+    font-weight: bold;
+    line-height: 1;
+}
+.completed-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.completed-text strong {
+    font-size: 16px;
+    color: #4cde7a;
+}
+.completed-text span {
+    font-size: 13px;
+    color: #6a9a7a;
+}
+
+/* ── Cycle Note ──────────────────────────────────────── */
+.cycle-note {
+    font-size: 12px;
+    color: #4a6a8a;
+    margin-left: auto;
+    font-style: italic;
 }

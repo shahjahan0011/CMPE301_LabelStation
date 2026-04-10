@@ -5,75 +5,261 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LabelProMax MES</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <meta http-equiv="refresh" content="1">
 </head>
 <body>
-    <div class="header">LabelProMax MES Dashboard</div>
+    <div class="header">
+        <span>LabelProMax MES Dashboard</span>
+        <div class="header-right">
+            <span class="role-badge role-{{ role }}">{{ role | upper }}</span>
+            <a href="/orders" class="nav-link">Order History</a>
+            <a href="/logout" class="nav-link nav-logout">Logout</a>
+        </div>
+    </div>
 
     <div class="container">
+
+        <!-- Status Cards -->
         <div class="card">
             <h3>Connection</h3>
-            <div class="value">{{ "Connected" if data.connected else "Disconnected" }}</div>
-        </div>
-
-        <div class="card">
-            <h3>Current Order ID</h3>
-            <div class="value">{{ data.current_order_id }}</div>
+            <div class="value {{ 'status-ok' if data.connected else 'status-err' }}" id="val_connection">
+                {{ "Connected" if data.connected else "Disconnected" }}
+            </div>
         </div>
 
         <div class="card">
             <h3>Station State</h3>
-            <div class="value">{{ data.station_state }}</div>
-        </div>
-
-        <div class="card">
-            <h3>Run Time (s)</h3>
-            <div class="value">{{ data.run_time }}</div>
+            <div class="value state-{{ data.station_state | lower }}" id="val_station_state">{{ data.station_state }}</div>
         </div>
 
         <div class="card">
             <h3>Total Count</h3>
-            <div class="value">{{ data.total_count }}</div>
+            <div class="value" id="val_total_count">{{ data.total_count }}</div>
         </div>
 
         <div class="card">
             <h3>Good Count</h3>
-            <div class="value">{{ data.good_count }}</div>
+            <div class="value" id="val_good_count">{{ data.good_count }}</div>
         </div>
 
-        <div class="card">
-            <h3>Availability</h3>
-            <div class="value">{{ data.availability }}%</div>
+        <!-- Completed Order Banner -->
+        {% if completed_order %}
+        <div class="card full-width completed-banner">
+            <div class="completed-icon">COMPLETE</div>
+            <div class="completed-text">
+                <strong>Order #{{ completed_order.order_id }} — {{ completed_order.product_name }} finished</strong>
+                <span>{{ completed_order.printed_count }} / {{ completed_order.planned_quantity }} pieces printed</span>
+            </div>
+            <a href="/orders/{{ completed_order.order_id }}" class="btn-ghost">View OEE Report</a>
+        </div>
+        {% endif %}
+
+        <!-- Active Work Order -->
+        <div class="card full-width section-card">
+            <div class="section-header">
+                <h3>Active Work Order</h3>
+                {% if active_order %}
+                <span class="mode-badge mode-{{ active_order.mode }}">
+                    {{ "AUTO" if active_order.mode == 'auto' else "MANUAL" }}
+                </span>
+                {% endif %}
+            </div>
+
+            {% if active_order %}
+            <div class="order-info-grid">
+                <div class="order-info-item">
+                    <span class="order-info-label">Order ID</span>
+                    <span class="order-info-val">#{{ active_order.order_id }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Product</span>
+                    <span class="order-info-val">{{ active_order.product_name }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Label Text</span>
+                    <span class="order-info-val mono">{{ active_order.label_text if active_order.label_text else '—' }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Progress</span>
+                    <span class="order-info-val">
+                        <span id="val_printed">{{ active_order.printed_count }}</span> / {{ active_order.planned_quantity }}
+                    </span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Planned Time (s)</span>
+                    <span class="order-info-val">{{ active_order.planned_production_time }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Ideal Cycle (s)</span>
+                    <span class="order-info-val">{{ active_order.ideal_cycle_time }}</span>
+                </div>
+            </div>
+
+            {% set pct = ((active_order.printed_count / active_order.planned_quantity * 100) | round(0) | int) if active_order.planned_quantity > 0 else 0 %}
+            <div class="progress-bar-wrap">
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="val_progress_bar"
+                         style="width: {{ [pct, 100] | min }}%"></div>
+                </div>
+                <span class="progress-pct" id="val_progress_pct">{{ [pct, 100] | min }}%</span>
+            </div>
+
+            <div class="order-actions">
+                {% if role == 'operator' %}
+                <form action="/orders/cancel" method="post" style="display:inline;">
+                    <button type="submit" class="btn-danger">Cancel Order</button>
+                </form>
+                {% endif %}
+                <a href="/orders/{{ active_order.order_id }}" class="btn-ghost">View OEE History</a>
+            </div>
+
+            {% else %}
+            <div class="no-order">
+                No active order.
+                {% if role == 'operator' %}Create one below.{% else %}Waiting for operator.{% endif %}
+            </div>
+            {% endif %}
         </div>
 
-        <div class="card">
-            <h3>Performance</h3>
-            <div class="value">{{ data.performance }}%</div>
-        </div>
+        <!-- Create Work Order (Operator only) -->
+        {% if role == 'operator' %}
+        <div class="card full-width section-card">
+            <div class="section-header">
+                <h3>Create Work Order</h3>
+                <span class="cycle-note">Ideal cycle time: 11.5s — Planned time calculated automatically</span>
+            </div>
+            <form action="/orders/create" method="post" class="create-order-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" name="product_name" placeholder="e.g. PhoneModel-A" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity (pieces)</label>
+                        <input type="number" name="planned_quantity" min="1" value="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Label Text</label>
+                        <input type="text" name="label_text" id="labelTextInput"
+                               placeholder="Text to print on each label" required>
+                    </div>
+                </div>
 
-        <div class="card">
-            <h3>Quality</h3>
-            <div class="value">{{ data.quality }}%</div>
-        </div>
+                <div class="form-row mode-row">
+                    <div class="mode-toggle-label">Print Mode:</div>
+                    <label class="mode-option">
+                        <input type="radio" name="mode" value="auto" checked onchange="onModeChange(this)">
+                        <span class="mode-opt-box mode-auto">AUTO — Print automatically after each piece</span>
+                    </label>
+                    <label class="mode-option">
+                        <input type="radio" name="mode" value="manual" onchange="onModeChange(this)">
+                        <span class="mode-opt-box mode-manual">MANUAL — Operator triggers each print</span>
+                    </label>
+                </div>
 
-        <div class="card">
-            <h3>OEE</h3>
-            <div class="value">{{ data.oee }}%</div>
-        </div>
-
-        <div class="card full-width">
-            <h3>Printer</h3>
-            <form action="/print_label" method="post">
-                <input type="text" name="label_text" placeholder="Enter label text" value="{{ data.label_text }}">
-                <button type="submit">Send to Printer</button>
+                <button type="submit" class="btn-primary">Start Order</button>
             </form>
-            <p>Print Status: <strong>{{ data.print_status }}</strong></p>
         </div>
 
-        <div class="card full-width">
+        <!-- Manual Print panel -->
+        {% if active_order and active_order.mode == 'manual' %}
+        <div class="card full-width section-card">
+            <div class="section-header">
+                <h3>Manual Print</h3>
+                <span class="mode-badge mode-manual">MANUAL</span>
+            </div>
+            <form action="/print_label" method="post" class="print-form">
+                <input type="text" name="label_text"
+                       placeholder="Enter label text to print"
+                       value="{{ data.label_text }}">
+                <button type="submit" class="btn-primary">Send to Printer</button>
+            </form>
+            <p class="print-status-line">
+                Print Status:&nbsp;
+                <strong class="{{ 'status-ok' if data.print_status else 'status-err' }}">
+                    {{ "OK" if data.print_status else "Idle" }}
+                </strong>
+            </p>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <!-- System Message -->
+        {% if data.message %}
+        <div class="card full-width message-card">
             <h3>System Message</h3>
             <p>{{ data.message }}</p>
         </div>
+        {% endif %}
+
     </div>
+
+    <script>
+        function onModeChange(radio) {
+            const lt = document.getElementById('labelTextInput');
+            if (radio.value === 'manual') {
+                lt.required = false;
+                lt.placeholder = 'Set later when printing (optional now)';
+            } else {
+                lt.required = true;
+                lt.placeholder = 'Text to print on each label';
+            }
+        }
+
+        let _orderCompleteReloaded = false;
+
+        async function pollLive() {
+            try {
+                const res = await fetch('/api/live');
+                if (!res.ok) return;
+                const d = await res.json();
+
+                // ── Counters ──
+                set('val_total_count', d.total_count ?? '—');
+                set('val_good_count',  d.good_count  ?? '—');
+
+                // ── Connection status ──
+                const connEl = document.getElementById('val_connection');
+                if (connEl) {
+                    connEl.textContent = d.connected ? 'Connected' : 'Disconnected';
+                    connEl.className = 'value ' + (d.connected ? 'status-ok' : 'status-err');
+                }
+
+                // ── Station state ──
+                const stateEl = document.getElementById('val_station_state');
+                if (stateEl) {
+                    stateEl.textContent = d.station_state ?? 'UNKNOWN';
+                    stateEl.className = 'value state-' + (d.station_state ?? 'unknown').toLowerCase();
+                }
+
+                // ── Progress bar ──
+                if (d.active_order) {
+                    const pc  = d.active_order.printed_count    ?? 0;
+                    const pq  = d.active_order.planned_quantity ?? 1;
+                    const pct = pq > 0 ? Math.min(100, Math.round(pc / pq * 100)) : 0;
+                    set('val_printed',      pc);
+                    set('val_progress_pct', pct + '%');
+                    const bar = document.getElementById('val_progress_bar');
+                    if (bar) bar.style.width = pct + '%';
+                }
+
+                // ── Order completed — reload once to show banner ──
+                if (d.completed_order && !d.active_order && !_orderCompleteReloaded) {
+                    const banner = document.querySelector('.completed-banner');
+                    if (!banner) {
+                        _orderCompleteReloaded = true;
+                        window.location.reload();
+                    }
+                }
+
+            } catch (e) {}
+        }
+
+        function set(id, val) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        }
+
+        setInterval(pollLive, 1500);
+    </script>
 </body>
 </html>

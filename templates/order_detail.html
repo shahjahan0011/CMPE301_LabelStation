@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order #{{ order.order_id }} — LabelProMax MES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="header">
+        <span>Order #{{ order.order_id }} — {{ order.product_name }}</span>
+        <div class="header-right">
+            <span class="role-badge role-{{ role }}">{{ role | upper }}</span>
+            <a href="/orders" class="nav-link">← Orders</a>
+            <a href="/" class="nav-link">Dashboard</a>
+            <a href="/logout" class="nav-link nav-logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <!-- ── Order Summary ── -->
+        <div class="card full-width section-card">
+            <div class="section-header">
+                <h3>Order Summary</h3>
+                <span class="mode-badge mode-{{ order.mode }}">
+                    {{ "⚡ AUTO" if order.mode == 'auto' else "✋ MANUAL" }}
+                </span>
+                <span class="status-pill status-{{ order.status }}">{{ order.status | upper }}</span>
+            </div>
+            <div class="order-info-grid" style="grid-template-columns: repeat(4,1fr);">
+                <div class="order-info-item">
+                    <span class="order-info-label">Product</span>
+                    <span class="order-info-val">{{ order.product_name }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Progress</span>
+                    <span class="order-info-val">{{ order.printed_count }} / {{ order.planned_quantity }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Planned Time (s)</span>
+                    <span class="order-info-val">{{ order.planned_production_time }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Ideal Cycle (s)</span>
+                    <span class="order-info-val">{{ order.ideal_cycle_time }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Started</span>
+                    <span class="order-info-val" style="font-size:14px;">{{ order.start_timestamp[:16] if order.start_timestamp else '—' }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Ended</span>
+                    <span class="order-info-val" style="font-size:14px;">{{ order.end_timestamp[:16] if order.end_timestamp else '—' }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Label Text</span>
+                    <span class="order-info-val mono">{{ order.label_text if order.label_text else '—' }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">OEE Records</span>
+                    <span class="order-info-val">{{ history | length }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Latest OEE snapshot ── -->
+        {% if history %}
+        {% set last = history[-1] %}
+        <div class="card">
+            <h3>Availability</h3>
+            <div class="value oee-val">{{ (last.availability * 100) | round(1) }}%</div>
+        </div>
+        <div class="card">
+            <h3>Performance</h3>
+            <div class="value oee-val">{{ (last.performance * 100) | round(1) }}%</div>
+        </div>
+        <div class="card">
+            <h3>Quality</h3>
+            <div class="value oee-val">{{ (last.quality * 100) | round(1) }}%</div>
+        </div>
+        <div class="card oee-highlight">
+            <h3>OEE</h3>
+            <div class="value oee-big">{{ (last.oee_value * 100) | round(1) }}%</div>
+        </div>
+        {% endif %}
+
+        <!-- ── OEE History Table ── -->
+        <div class="card full-width section-card">
+            <div class="section-header">
+                <h3>OEE History</h3>
+                <span class="order-count">{{ history | length }} records</span>
+            </div>
+
+            {% if history %}
+            <div class="table-wrap">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Timestamp</th>
+                            <th>Run Time (s)</th>
+                            <th>Last Cycle (s)</th>
+                            <th>Total</th>
+                            <th>Good</th>
+                            <th>State</th>
+                            <th>Availability</th>
+                            <th>Performance</th>
+                            <th>Quality</th>
+                            <th>OEE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in history | reverse %}
+                        <tr>
+                            <td class="mono">{{ r.record_id }}</td>
+                            <td class="ts-cell">{{ r.timestamp[:19] }}</td>
+                            <td>{{ r.run_time | round(2) }}</td>
+                            <td>{{ r.last_cycle_time | round(2) }}</td>
+                            <td>{{ r.total_count }}</td>
+                            <td>{{ r.good_count }}</td>
+                            <td><span class="state-{{ r.station_state | lower }}">{{ r.station_state }}</span></td>
+                            <td>{{ (r.availability * 100) | round(1) }}%</td>
+                            <td>{{ (r.performance  * 100) | round(1) }}%</td>
+                            <td>{{ (r.quality      * 100) | round(1) }}%</td>
+                            <td><strong>{{ (r.oee_value * 100) | round(1) }}%</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="no-order">No OEE records yet — records are saved after each completed cycle.</div>
+            {% endif %}
+        </div>
+
+    </div>
+</body>
+</html>
