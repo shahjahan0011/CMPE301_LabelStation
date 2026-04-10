@@ -8,6 +8,7 @@ from repository import (
     init_db,
     create_order,
     get_active_order,
+    get_order,
     get_all_orders,
     cancel_order,
     increment_printed_count,
@@ -23,29 +24,35 @@ app.secret_key = "mes-secret-key-change-in-prod"
 
 opc = OPCUAClient()
 
+# Hardcoded ideal cycle time (seconds per piece)
+IDEAL_CYCLE_TIME = 11.5
+
 live_data = {
-    "connected":        False,
-    "station_state":    "UNKNOWN",
-    "run_time":         0.0,
-    "last_cycle_time":  0.0,
-    "total_count":      0,
-    "good_count":       0,
-    "print_status":     False,
-    "label_text":       "",
-    "message":          "",
-    # OEE
-    "availability":     0.0,
-    "performance":      0.0,
-    "quality":          0.0,
-    "oee":              0.0,
+    "connected":               False,
+    "station_state":           "UNKNOWN",
+    "run_time":                0.0,   # cumulative runtime accumulated MES-side
+    "last_cycle_time":         0.0,
+    "total_count":             0,
+    "good_count":              0,
+    "print_status":            False,
+    "label_text":              "",
+    "message":                 "",
+    "availability":            0.0,
+    "performance":             0.0,
+    "quality":                 0.0,
+    "oee":                     0.0,
+    "last_completed_order_id": None,
 }
 
-_last_label_request = False
-_last_cycle_done    = False
+_last_label_request  = False
+_last_cycle_done     = False
+_accumulated_runtime = 0.0   # MES-side cumulative runtime for current order
+_last_plc_cycle_time = 0.0   # previous last_cycle_time value to detect new cycles
 
 
 def background_loop():
     global _last_label_request, _last_cycle_done
+    global _accumulated_runtime, _last_plc_cycle_time
 
     while True:
         try:
@@ -53,7 +60,6 @@ def background_loop():
             live_data["connected"] = True
 
             station_state_raw = int(snapshot["station_state"])
-            run_time          = float(snapshot["run_time"])
             last_cycle_time   = float(snapshot["last_cycle_time"])
             total_count       = int(snapshot["total_count"])
             good_count        = int(snapshot["good_count"])
@@ -63,7 +69,6 @@ def background_loop():
             cycle_done        = bool(snapshot["cycle_done"])
 
             live_data["station_state"]   = STATE_MAP.get(station_state_raw, "UNKNOWN")
-            live_data["run_time"]        = round(run_time, 2)
             live_data["last_cycle_time"] = round(last_cycle_time, 2)
             live_data["total_count"]     = total_count
             live_data["good_count"]      = good_count
@@ -72,15 +77,22 @@ def background_loop():
 
             active_order = get_active_order()
 
-            # ── OEE: recalculate on every cycle_done rising edge ──────────────
-            if cycle_done and not _last_cycle_done and active_order:
+            # ── Accumulate runtime: add last_cycle_time when a new cycle completes ──
+            # Detect rising edge of cycle_done — that's when last_cycle_time is fresh
+            if cycle_done and not _last_cycle_done:
+                if last_cycle_time > 0:
+                    _accumulated_runtime += last_cycle_time
+
+            live_data["run_time"] = round(_accumulated_runtime, 2)
+
+            # ── OEE: compute on every poll as long as we have data ────────────
+            if active_order and _accumulated_runtime > 0 and total_count > 0:
                 ppt = float(active_order["planned_production_time"])
-                ict = float(active_order["ideal_cycle_time"])
 
                 oee_data = compute_oee(
-                    run_time=run_time,
+                    run_time=_accumulated_runtime,
                     planned_production_time=ppt,
-                    ideal_cycle_time=ict,
+                    ideal_cycle_time=IDEAL_CYCLE_TIME,
                     total_count=total_count,
                     good_count=good_count,
                 )
@@ -90,23 +102,26 @@ def background_loop():
                 live_data["quality"]      = round(oee_data["quality"]      * 100, 2)
                 live_data["oee"]          = round(oee_data["oee"]          * 100, 2)
 
-                insert_oee_record(
-                    order_id=active_order["order_id"],
-                    run_time=run_time,
-                    last_cycle_time=last_cycle_time,
-                    total_count=total_count,
-                    good_count=good_count,
-                    station_state=live_data["station_state"],
-                    availability=oee_data["availability"],
-                    performance=oee_data["performance"],
-                    quality=oee_data["quality"],
-                    oee_value=oee_data["oee"],
-                )
+                # Save DB record once per cycle completion
+                if cycle_done and not _last_cycle_done:
+                    insert_oee_record(
+                        order_id=active_order["order_id"],
+                        run_time=_accumulated_runtime,
+                        last_cycle_time=last_cycle_time,
+                        total_count=total_count,
+                        good_count=good_count,
+                        station_state=live_data["station_state"],
+                        availability=oee_data["availability"],
+                        performance=oee_data["performance"],
+                        quality=oee_data["quality"],
+                        oee_value=oee_data["oee"],
+                    )
 
             _last_cycle_done = cycle_done
 
             # ── Auto print: rising edge on label_request ──────────────────────
             if label_request and not _last_label_request:
+                active_order = get_active_order()
                 if active_order and active_order["mode"] == "auto":
                     text_to_print = active_order["label_text"]
                     success = print_label(text_to_print)
@@ -118,7 +133,8 @@ def background_loop():
                         order_done = increment_printed_count(active_order["order_id"])
                         log_print(active_order["order_id"], text_to_print, True)
                         if order_done:
-                            live_data["message"] = f"Order #{active_order['order_id']} completed."
+                            live_data["last_completed_order_id"] = active_order["order_id"]
+                            live_data["message"] = f"Order #{active_order['order_id']} completed!"
                     else:
                         log_print(active_order["order_id"], text_to_print, False)
                         live_data["message"] = "Auto-print failed."
@@ -165,12 +181,21 @@ def logout():
 def dashboard():
     if "role" not in session:
         return redirect("/login")
+
     active_order = get_active_order()
     active_order_dict = dict(active_order) if active_order else None
+
+    completed_order = None
+    if not active_order and live_data["last_completed_order_id"]:
+        row = get_order(live_data["last_completed_order_id"])
+        if row:
+            completed_order = dict(row)
+
     return render_template("dashboard.html",
                            data=live_data,
                            role=session["role"],
-                           active_order=active_order_dict)
+                           active_order=active_order_dict,
+                           completed_order=completed_order)
 
 
 @app.route("/api/live")
@@ -178,9 +203,17 @@ def api_live():
     if "role" not in session:
         return jsonify({"error": "unauthorized"}), 401
     active_order = get_active_order()
+
+    completed_order = None
+    if not active_order and live_data["last_completed_order_id"]:
+        row = get_order(live_data["last_completed_order_id"])
+        if row:
+            completed_order = dict(row)
+
     return jsonify({
         **live_data,
-        "active_order": dict(active_order) if active_order else None
+        "active_order":    dict(active_order) if active_order else None,
+        "completed_order": completed_order,
     })
 
 
@@ -191,16 +224,13 @@ def orders():
     if "role" not in session:
         return redirect("/login")
     all_orders = [dict(o) for o in get_all_orders()]
-    return render_template("orders.html",
-                           orders=all_orders,
-                           role=session["role"])
+    return render_template("orders.html", orders=all_orders, role=session["role"])
 
 
 @app.route("/orders/<int:order_id>")
 def order_detail(order_id):
     if "role" not in session:
         return redirect("/login")
-    from repository import get_order
     order = get_order(order_id)
     if not order:
         return redirect("/orders")
@@ -213,15 +243,14 @@ def order_detail(order_id):
 
 @app.route("/orders/create", methods=["POST"])
 def orders_create():
+    global _accumulated_runtime
     if session.get("role") != "operator":
         return redirect("/")
 
-    product_name            = request.form.get("product_name", "").strip()
-    planned_quantity        = int(request.form.get("planned_quantity", 1))
-    planned_production_time = float(request.form.get("planned_production_time", 3600.0))
-    ideal_cycle_time        = float(request.form.get("ideal_cycle_time", 60.0))
-    label_text              = request.form.get("label_text", "").strip()
-    mode                    = request.form.get("mode", "manual")
+    product_name     = request.form.get("product_name", "").strip()
+    planned_quantity = int(request.form.get("planned_quantity", 1))
+    label_text       = request.form.get("label_text", "").strip()
+    mode             = request.form.get("mode", "manual")
 
     if not product_name:
         live_data["message"] = "Product name is required."
@@ -230,30 +259,47 @@ def orders_create():
         live_data["message"] = "Label text is required for auto mode."
         return redirect("/")
 
+    # Planned production time = quantity x ideal cycle time
+    planned_production_time = planned_quantity * IDEAL_CYCLE_TIME
+
     active = get_active_order()
     if active:
         cancel_order(active["order_id"])
 
-    order_id = create_order(product_name, planned_quantity,
-                            planned_production_time, ideal_cycle_time,
-                            label_text, mode)
-    live_data["message"] = f"Order #{order_id} created ({mode} mode)."
-    # Reset OEE on new order
-    live_data["availability"] = 0.0
-    live_data["performance"]  = 0.0
-    live_data["quality"]      = 0.0
-    live_data["oee"]          = 0.0
+    order_id = create_order(
+        product_name=product_name,
+        planned_quantity=planned_quantity,
+        planned_production_time=planned_production_time,
+        ideal_cycle_time=IDEAL_CYCLE_TIME,
+        label_text=label_text,
+        mode=mode,
+    )
+
+    # Reset all runtime and OEE state for the new order
+    _accumulated_runtime                 = 0.0
+    live_data["run_time"]                = 0.0
+    live_data["last_cycle_time"]         = 0.0
+    live_data["availability"]            = 0.0
+    live_data["performance"]             = 0.0
+    live_data["quality"]                 = 0.0
+    live_data["oee"]                     = 0.0
+    live_data["last_completed_order_id"] = None
+    live_data["message"]                 = f"Order #{order_id} created ({mode} mode)."
     return redirect("/")
 
 
 @app.route("/orders/cancel", methods=["POST"])
 def orders_cancel():
+    global _accumulated_runtime
     if session.get("role") != "operator":
         return redirect("/")
     active = get_active_order()
     if active:
         cancel_order(active["order_id"])
-        live_data["message"] = f"Order #{active['order_id']} cancelled."
+        _accumulated_runtime                 = 0.0
+        live_data["run_time"]                = 0.0
+        live_data["last_completed_order_id"] = None
+        live_data["message"]                 = f"Order #{active['order_id']} cancelled."
     return redirect("/")
 
 
@@ -279,8 +325,11 @@ def handle_print():
 
         active = get_active_order()
         if active:
-            increment_printed_count(active["order_id"])
+            order_done = increment_printed_count(active["order_id"])
             log_print(active["order_id"], label_text, success)
+            if order_done:
+                live_data["last_completed_order_id"] = active["order_id"]
+                live_data["message"] = f"Order #{active['order_id']} completed!"
 
     except Exception as exc:
         live_data["message"] = f"Print error: {exc}"

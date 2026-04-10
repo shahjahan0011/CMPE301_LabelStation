@@ -18,11 +18,11 @@
 
     <div class="container">
 
-        <!-- ── Status Cards ── -->
+        <!-- Status Cards -->
         <div class="card">
             <h3>Connection</h3>
             <div class="value {{ 'status-ok' if data.connected else 'status-err' }}">
-                {{ "● Connected" if data.connected else "○ Disconnected" }}
+                {{ "Connected" if data.connected else "Disconnected" }}
             </div>
         </div>
 
@@ -41,7 +41,7 @@
             <div class="value" id="val_good_count">{{ data.good_count }}</div>
         </div>
 
-        <!-- ── Cycle & Runtime ── -->
+        <!-- Runtime Cards -->
         <div class="card">
             <h3>Run Time (s)</h3>
             <div class="value" id="val_run_time">{{ data.run_time }}</div>
@@ -52,7 +52,7 @@
             <div class="value" id="val_last_cycle_time">{{ data.last_cycle_time }}</div>
         </div>
 
-        <!-- ── OEE Cards ── -->
+        <!-- OEE Cards -->
         <div class="card">
             <h3>Availability</h3>
             <div class="value oee-val" id="val_availability">{{ data.availability }}%</div>
@@ -73,13 +73,25 @@
             <div class="value oee-big" id="val_oee">{{ data.oee }}%</div>
         </div>
 
-        <!-- ── Active Work Order ── -->
+        <!-- Completed Order Banner -->
+        {% if completed_order %}
+        <div class="card full-width completed-banner">
+            <div class="completed-icon">COMPLETE</div>
+            <div class="completed-text">
+                <strong>Order #{{ completed_order.order_id }} — {{ completed_order.product_name }} finished</strong>
+                <span>{{ completed_order.printed_count }} / {{ completed_order.planned_quantity }} pieces printed</span>
+            </div>
+            <a href="/orders/{{ completed_order.order_id }}" class="btn-ghost">View OEE Report</a>
+        </div>
+        {% endif %}
+
+        <!-- Active Work Order -->
         <div class="card full-width section-card">
             <div class="section-header">
                 <h3>Active Work Order</h3>
                 {% if active_order %}
                 <span class="mode-badge mode-{{ active_order.mode }}">
-                    {{ "⚡ AUTO" if active_order.mode == 'auto' else "✋ MANUAL" }}
+                    {{ "AUTO" if active_order.mode == 'auto' else "MANUAL" }}
                 </span>
                 {% endif %}
             </div>
@@ -101,8 +113,7 @@
                 <div class="order-info-item">
                     <span class="order-info-label">Progress</span>
                     <span class="order-info-val">
-                        <span id="val_printed">{{ active_order.printed_count }}</span>
-                        / {{ active_order.planned_quantity }}
+                        <span id="val_printed">{{ active_order.printed_count }}</span> / {{ active_order.planned_quantity }}
                     </span>
                 </div>
                 <div class="order-info-item">
@@ -124,18 +135,14 @@
                 <span class="progress-pct" id="val_progress_pct">{{ [pct, 100] | min }}%</span>
             </div>
 
-            {% if role == 'operator' %}
             <div class="order-actions">
+                {% if role == 'operator' %}
                 <form action="/orders/cancel" method="post" style="display:inline;">
-                    <button type="submit" class="btn-danger">✕ Cancel Order</button>
+                    <button type="submit" class="btn-danger">Cancel Order</button>
                 </form>
-                <a href="/orders/{{ active_order.order_id }}" class="btn-ghost">📊 View OEE History</a>
+                {% endif %}
+                <a href="/orders/{{ active_order.order_id }}" class="btn-ghost">View OEE History</a>
             </div>
-            {% else %}
-            <div class="order-actions">
-                <a href="/orders/{{ active_order.order_id }}" class="btn-ghost">📊 View OEE History</a>
-            </div>
-            {% endif %}
 
             {% else %}
             <div class="no-order">
@@ -145,11 +152,12 @@
             {% endif %}
         </div>
 
-        <!-- ── Create Work Order (Operator only) ── -->
+        <!-- Create Work Order (Operator only) -->
         {% if role == 'operator' %}
         <div class="card full-width section-card">
             <div class="section-header">
                 <h3>Create Work Order</h3>
+                <span class="cycle-note">Ideal cycle time: 11.5s — Planned time calculated automatically</span>
             </div>
             <form action="/orders/create" method="post" class="create-order-form">
                 <div class="form-row">
@@ -168,60 +176,46 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Planned Production Time (s)</label>
-                        <input type="number" name="planned_production_time"
-                               min="1" step="0.1" value="3600" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Ideal Cycle Time (s)</label>
-                        <input type="number" name="ideal_cycle_time"
-                               min="0.1" step="0.1" value="60" required>
-                    </div>
-                    <div class="form-group"></div>
-                </div>
-
                 <div class="form-row mode-row">
                     <div class="mode-toggle-label">Print Mode:</div>
                     <label class="mode-option">
                         <input type="radio" name="mode" value="auto" checked onchange="onModeChange(this)">
-                        <span class="mode-opt-box mode-auto">⚡ Auto — Print automatically after each piece</span>
+                        <span class="mode-opt-box mode-auto">AUTO — Print automatically after each piece</span>
                     </label>
                     <label class="mode-option">
                         <input type="radio" name="mode" value="manual" onchange="onModeChange(this)">
-                        <span class="mode-opt-box mode-manual">✋ Manual — Operator triggers each print</span>
+                        <span class="mode-opt-box mode-manual">MANUAL — Operator triggers each print</span>
                     </label>
                 </div>
 
-                <button type="submit" class="btn-primary">▶ Start Order</button>
+                <button type="submit" class="btn-primary">Start Order</button>
             </form>
         </div>
 
-        <!-- ── Manual Print panel (only in manual mode) ── -->
+        <!-- Manual Print panel -->
         {% if active_order and active_order.mode == 'manual' %}
         <div class="card full-width section-card">
             <div class="section-header">
                 <h3>Manual Print</h3>
-                <span class="mode-badge mode-manual">✋ MANUAL</span>
+                <span class="mode-badge mode-manual">MANUAL</span>
             </div>
             <form action="/print_label" method="post" class="print-form">
                 <input type="text" name="label_text"
                        placeholder="Enter label text to print"
                        value="{{ data.label_text }}">
-                <button type="submit" class="btn-primary">🖨 Send to Printer</button>
+                <button type="submit" class="btn-primary">Send to Printer</button>
             </form>
             <p class="print-status-line">
                 Print Status:&nbsp;
                 <strong class="{{ 'status-ok' if data.print_status else 'status-err' }}">
-                    {{ "✓ OK" if data.print_status else "✗ Idle" }}
+                    {{ "OK" if data.print_status else "Idle" }}
                 </strong>
             </p>
         </div>
         {% endif %}
         {% endif %}
 
-        <!-- ── System Message ── -->
+        <!-- System Message -->
         {% if data.message %}
         <div class="card full-width message-card">
             <h3>System Message</h3>
@@ -249,14 +243,14 @@
                 if (!res.ok) return;
                 const d = await res.json();
 
-                set('val_total_count',     d.total_count      ?? '—');
-                set('val_good_count',      d.good_count       ?? '—');
-                set('val_run_time',        d.run_time         ?? '—');
-                set('val_last_cycle_time', d.last_cycle_time  ?? '—');
-                set('val_availability',    (d.availability    ?? 0) + '%');
-                set('val_performance',     (d.performance     ?? 0) + '%');
-                set('val_quality',         (d.quality         ?? 0) + '%');
-                set('val_oee',             (d.oee             ?? 0) + '%');
+                set('val_total_count',     d.total_count     ?? '—');
+                set('val_good_count',      d.good_count      ?? '—');
+                set('val_run_time',        d.run_time        ?? '—');
+                set('val_last_cycle_time', d.last_cycle_time ?? '—');
+                set('val_availability',    (d.availability   ?? 0) + '%');
+                set('val_performance',     (d.performance    ?? 0) + '%');
+                set('val_quality',         (d.quality        ?? 0) + '%');
+                set('val_oee',             (d.oee            ?? 0) + '%');
 
                 if (d.active_order) {
                     const pc  = d.active_order.printed_count    ?? 0;
@@ -266,6 +260,12 @@
                     set('val_progress_pct', pct + '%');
                     const bar = document.getElementById('val_progress_bar');
                     if (bar) bar.style.width = pct + '%';
+                }
+
+                // Reload if order just completed to show banner
+                if (d.completed_order && !d.active_order) {
+                    const banner = document.querySelector('.completed-banner');
+                    if (!banner) window.location.reload();
                 }
             } catch (e) {}
         }
