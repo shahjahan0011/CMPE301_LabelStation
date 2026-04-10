@@ -57,7 +57,11 @@ In the project directory:
 pip install -r requirements.txt
 python app.py
 ```
+Whenever you rerun the MES, you need to delete the database from the root directory.
 
+```bash
+del mes.db
+```
 ---
 
 ### 4. Open Dashboard
@@ -66,28 +70,11 @@ http://127.0.0.1:5000
 
 ---
 
-## How It Works
-
-1. RFID detects a pallet → Order ID is read  
-2. MES dashboard updates in real time  
-3. User enters label text and prints  
-4. PLC executes labeling sequence  
-5. Runtime and counts are tracked automatically  
-
----
-
 ## Notes
 
 - Ensure PLC and PC are on the same network  
 - PLC must be in **RUN mode**  
 - Printer must be powered ON  
-- If MES fails to start, delete the database:
-
-```bash
-del mes.db
-```
-
----
 
 ## Authors
 
