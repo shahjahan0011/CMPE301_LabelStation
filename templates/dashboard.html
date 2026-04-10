@@ -41,6 +41,38 @@
             <div class="value" id="val_good_count">{{ data.good_count }}</div>
         </div>
 
+        <!-- ── Cycle & Runtime ── -->
+        <div class="card">
+            <h3>Run Time (s)</h3>
+            <div class="value" id="val_run_time">{{ data.run_time }}</div>
+        </div>
+
+        <div class="card">
+            <h3>Last Cycle Time (s)</h3>
+            <div class="value" id="val_last_cycle_time">{{ data.last_cycle_time }}</div>
+        </div>
+
+        <!-- ── OEE Cards ── -->
+        <div class="card">
+            <h3>Availability</h3>
+            <div class="value oee-val" id="val_availability">{{ data.availability }}%</div>
+        </div>
+
+        <div class="card">
+            <h3>Performance</h3>
+            <div class="value oee-val" id="val_performance">{{ data.performance }}%</div>
+        </div>
+
+        <div class="card">
+            <h3>Quality</h3>
+            <div class="value oee-val" id="val_quality">{{ data.quality }}%</div>
+        </div>
+
+        <div class="card oee-highlight">
+            <h3>OEE</h3>
+            <div class="value oee-big" id="val_oee">{{ data.oee }}%</div>
+        </div>
+
         <!-- ── Active Work Order ── -->
         <div class="card full-width section-card">
             <div class="section-header">
@@ -64,7 +96,7 @@
                 </div>
                 <div class="order-info-item">
                     <span class="order-info-label">Label Text</span>
-                    <span class="order-info-val mono">{{ active_order.label_text }}</span>
+                    <span class="order-info-val mono">{{ active_order.label_text if active_order.label_text else '—' }}</span>
                 </div>
                 <div class="order-info-item">
                     <span class="order-info-label">Progress</span>
@@ -72,6 +104,14 @@
                         <span id="val_printed">{{ active_order.printed_count }}</span>
                         / {{ active_order.planned_quantity }}
                     </span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Planned Time (s)</span>
+                    <span class="order-info-val">{{ active_order.planned_production_time }}</span>
+                </div>
+                <div class="order-info-item">
+                    <span class="order-info-label">Ideal Cycle (s)</span>
+                    <span class="order-info-val">{{ active_order.ideal_cycle_time }}</span>
                 </div>
             </div>
 
@@ -89,6 +129,11 @@
                 <form action="/orders/cancel" method="post" style="display:inline;">
                     <button type="submit" class="btn-danger">✕ Cancel Order</button>
                 </form>
+                <a href="/orders/{{ active_order.order_id }}" class="btn-ghost">📊 View OEE History</a>
+            </div>
+            {% else %}
+            <div class="order-actions">
+                <a href="/orders/{{ active_order.order_id }}" class="btn-ghost">📊 View OEE History</a>
             </div>
             {% endif %}
 
@@ -118,18 +163,33 @@
                     </div>
                     <div class="form-group">
                         <label>Label Text</label>
-                        <input type="text" name="label_text" placeholder="Text to print on each label" required>
+                        <input type="text" name="label_text" id="labelTextInput"
+                               placeholder="Text to print on each label" required>
                     </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Planned Production Time (s)</label>
+                        <input type="number" name="planned_production_time"
+                               min="1" step="0.1" value="3600" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Ideal Cycle Time (s)</label>
+                        <input type="number" name="ideal_cycle_time"
+                               min="0.1" step="0.1" value="60" required>
+                    </div>
+                    <div class="form-group"></div>
                 </div>
 
                 <div class="form-row mode-row">
                     <div class="mode-toggle-label">Print Mode:</div>
                     <label class="mode-option">
-                        <input type="radio" name="mode" value="auto" checked>
+                        <input type="radio" name="mode" value="auto" checked onchange="onModeChange(this)">
                         <span class="mode-opt-box mode-auto">⚡ Auto — Print automatically after each piece</span>
                     </label>
                     <label class="mode-option">
-                        <input type="radio" name="mode" value="manual">
+                        <input type="radio" name="mode" value="manual" onchange="onModeChange(this)">
                         <span class="mode-opt-box mode-manual">✋ Manual — Operator triggers each print</span>
                     </label>
                 </div>
@@ -172,14 +232,31 @@
     </div>
 
     <script>
+        function onModeChange(radio) {
+            const lt = document.getElementById('labelTextInput');
+            if (radio.value === 'manual') {
+                lt.required = false;
+                lt.placeholder = 'Set later when printing (optional now)';
+            } else {
+                lt.required = true;
+                lt.placeholder = 'Text to print on each label';
+            }
+        }
+
         async function pollLive() {
             try {
                 const res = await fetch('/api/live');
                 if (!res.ok) return;
                 const d = await res.json();
 
-                set('val_total_count', d.total_count ?? '—');
-                set('val_good_count',  d.good_count  ?? '—');
+                set('val_total_count',     d.total_count      ?? '—');
+                set('val_good_count',      d.good_count       ?? '—');
+                set('val_run_time',        d.run_time         ?? '—');
+                set('val_last_cycle_time', d.last_cycle_time  ?? '—');
+                set('val_availability',    (d.availability    ?? 0) + '%');
+                set('val_performance',     (d.performance     ?? 0) + '%');
+                set('val_quality',         (d.quality         ?? 0) + '%');
+                set('val_oee',             (d.oee             ?? 0) + '%');
 
                 if (d.active_order) {
                     const pc  = d.active_order.printed_count    ?? 0;
