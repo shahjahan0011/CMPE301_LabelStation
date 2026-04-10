@@ -24,13 +24,12 @@ app.secret_key = "mes-secret-key-change-in-prod"
 
 opc = OPCUAClient()
 
-# Hardcoded ideal cycle time (seconds per piece)
 IDEAL_CYCLE_TIME = 11.5
 
 live_data = {
     "connected":               False,
     "station_state":           "UNKNOWN",
-    "run_time":                0.0,   # cumulative runtime accumulated MES-side
+    "run_time":                0.0,
     "last_cycle_time":         0.0,
     "total_count":             0,
     "good_count":              0,
@@ -45,14 +44,13 @@ live_data = {
 }
 
 _last_label_request  = False
-_last_cycle_done     = False
-_accumulated_runtime = 0.0   # MES-side cumulative runtime for current order
-_last_plc_cycle_time = 0.0   # previous last_cycle_time value to detect new cycles
+_accumulated_runtime = 0.0
+_piece_start_time    = None   # MES wall-clock time when current piece started
 
 
 def background_loop():
-    global _last_label_request, _last_cycle_done
-    global _accumulated_runtime, _last_plc_cycle_time
+    global _last_label_request
+    global _accumulated_runtime, _piece_start_time
 
     while True:
         try:
@@ -60,32 +58,36 @@ def background_loop():
             live_data["connected"] = True
 
             station_state_raw = int(snapshot["station_state"])
-            last_cycle_time   = float(snapshot["last_cycle_time"])
             total_count       = int(snapshot["total_count"])
             good_count        = int(snapshot["good_count"])
             label_request     = bool(snapshot["label_request"])
             label_text_plc    = str(snapshot["label_text"])
             print_status      = bool(snapshot["print_status"])
-            cycle_done        = bool(snapshot["cycle_done"])
 
-            live_data["station_state"]   = STATE_MAP.get(station_state_raw, "UNKNOWN")
-            live_data["last_cycle_time"] = round(last_cycle_time, 2)
-            live_data["total_count"]     = total_count
-            live_data["good_count"]      = good_count
-            live_data["print_status"]    = print_status
-            live_data["label_text"]      = label_text_plc
+            live_data["station_state"] = STATE_MAP.get(station_state_raw, "UNKNOWN")
+            live_data["total_count"]   = total_count
+            live_data["good_count"]    = good_count
+            live_data["print_status"]  = print_status
+            live_data["label_text"]    = label_text_plc
 
             active_order = get_active_order()
 
-            # ── Accumulate runtime: add last_cycle_time when a new cycle completes ──
-            # Detect rising edge of cycle_done — that's when last_cycle_time is fresh
-            if cycle_done and not _last_cycle_done:
-                if last_cycle_time > 0:
-                    _accumulated_runtime += last_cycle_time
+            # ── MES-side timing ───────────────────────────────────────────────
+            # Start timing when station goes ACTIVE and we have an order
+            if active_order:
+                if live_data["station_state"] == "ACTIVE" and _piece_start_time is None:
+                    _piece_start_time = time.time()
 
-            live_data["run_time"] = round(_accumulated_runtime, 2)
+                # Rising edge of label_request = piece just finished, time it
+                if label_request and not _last_label_request:
+                    if _piece_start_time is not None:
+                        cycle_time = round(time.time() - _piece_start_time, 2)
+                        _accumulated_runtime        += cycle_time
+                        live_data["last_cycle_time"] = cycle_time
+                        live_data["run_time"]        = round(_accumulated_runtime, 2)
+                        _piece_start_time            = None  # reset for next piece
 
-            # ── OEE: compute on every poll as long as we have data ────────────
+            # ── OEE: compute on every poll ────────────────────────────────────
             if active_order and _accumulated_runtime > 0 and total_count > 0:
                 ppt = float(active_order["planned_production_time"])
 
@@ -102,12 +104,12 @@ def background_loop():
                 live_data["quality"]      = round(oee_data["quality"]      * 100, 2)
                 live_data["oee"]          = round(oee_data["oee"]          * 100, 2)
 
-                # Save DB record once per cycle completion
-                if cycle_done and not _last_cycle_done:
+                # Save to DB on each piece completion (label_request rising edge)
+                if label_request and not _last_label_request:
                     insert_oee_record(
                         order_id=active_order["order_id"],
                         run_time=_accumulated_runtime,
-                        last_cycle_time=last_cycle_time,
+                        last_cycle_time=live_data["last_cycle_time"],
                         total_count=total_count,
                         good_count=good_count,
                         station_state=live_data["station_state"],
@@ -116,8 +118,6 @@ def background_loop():
                         quality=oee_data["quality"],
                         oee_value=oee_data["oee"],
                     )
-
-            _last_cycle_done = cycle_done
 
             # ── Auto print: rising edge on label_request ──────────────────────
             if label_request and not _last_label_request:
@@ -243,7 +243,7 @@ def order_detail(order_id):
 
 @app.route("/orders/create", methods=["POST"])
 def orders_create():
-    global _accumulated_runtime
+    global _accumulated_runtime, _piece_start_time
     if session.get("role") != "operator":
         return redirect("/")
 
@@ -259,7 +259,6 @@ def orders_create():
         live_data["message"] = "Label text is required for auto mode."
         return redirect("/")
 
-    # Planned production time = quantity x ideal cycle time
     planned_production_time = planned_quantity * IDEAL_CYCLE_TIME
 
     active = get_active_order()
@@ -275,8 +274,8 @@ def orders_create():
         mode=mode,
     )
 
-    # Reset all runtime and OEE state for the new order
     _accumulated_runtime                 = 0.0
+    _piece_start_time                    = None
     live_data["run_time"]                = 0.0
     live_data["last_cycle_time"]         = 0.0
     live_data["availability"]            = 0.0
@@ -290,14 +289,16 @@ def orders_create():
 
 @app.route("/orders/cancel", methods=["POST"])
 def orders_cancel():
-    global _accumulated_runtime
+    global _accumulated_runtime, _piece_start_time
     if session.get("role") != "operator":
         return redirect("/")
     active = get_active_order()
     if active:
         cancel_order(active["order_id"])
         _accumulated_runtime                 = 0.0
+        _piece_start_time                    = None
         live_data["run_time"]                = 0.0
+        live_data["last_cycle_time"]         = 0.0
         live_data["last_completed_order_id"] = None
         live_data["message"]                 = f"Order #{active['order_id']} cancelled."
     return redirect("/")
