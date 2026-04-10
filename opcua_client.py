@@ -20,11 +20,11 @@ class OPCUAClient:
             for name, node in self.nodes.items()
         }
 
-    def write_bool(self, node_name, value: bool):
+    def write_bool(self, node_name: str, value: bool):
         node = self.nodes[node_name]
         node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.Boolean)))
 
-    def write_string(self, node_name, value: str):
+    def write_string(self, node_name: str, value: str):
         node = self.nodes[node_name]
         node.set_value(ua.DataValue(ua.Variant(value, ua.VariantType.String)))
 

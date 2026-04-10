@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order History — LabelProMax MES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="header">
+        <span>LabelProMax MES — Order History</span>
+        <div class="header-right">
+            <span class="role-badge role-{{ role }}">{{ role | upper }}</span>
+            <a href="/" class="nav-link">← Dashboard</a>
+            <a href="/logout" class="nav-link nav-logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card full-width section-card">
+            <div class="section-header">
+                <h3>Production Orders</h3>
+                <span class="order-count">{{ orders | length }} record{{ 's' if orders | length != 1 else '' }}</span>
+            </div>
+
+            {% if orders %}
+            <div class="table-wrap">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Product</th>
+                            <th>Mode</th>
+                            <th>Label Text</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                            <th>Started</th>
+                            <th>Ended</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in orders %}
+                        <tr>
+                            <td class="mono">#{{ o.order_id }}</td>
+                            <td>{{ o.product_name }}</td>
+                            <td>
+                                <span class="mode-badge mode-{{ o.mode }}">
+                                    {{ "⚡ AUTO" if o.mode == 'auto' else "✋ MANUAL" }}
+                                </span>
+                            </td>
+                            <td class="mono label-cell">{{ o.label_text }}</td>
+                            <td>
+                                {% set pct = (o.printed_count / o.planned_quantity * 100) | round(0) | int if o.planned_quantity > 0 else 0 %}
+                                <div class="mini-progress-wrap">
+                                    <div class="mini-progress-track">
+                                        <div class="mini-progress-fill"
+                                             style="width: {{ [pct, 100] | min }}%"></div>
+                                    </div>
+                                    <span class="mini-pct">{{ o.printed_count }}/{{ o.planned_quantity }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-pill status-{{ o.status }}">{{ o.status | upper }}</span>
+                            </td>
+                            <td class="ts-cell">{{ o.start_timestamp[:16] if o.start_timestamp else '—' }}</td>
+                            <td class="ts-cell">{{ o.end_timestamp[:16] if o.end_timestamp else '—' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="no-order">No orders yet.</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
