@@ -135,6 +135,7 @@ def background_loop():
                         if order_done:
                             live_data["last_completed_order_id"] = active_order["order_id"]
                             live_data["message"] = f"Order #{active_order['order_id']} completed!"
+                            # Do NOT reset OEE here — keep numbers visible after completion
                     else:
                         log_print(active_order["order_id"], text_to_print, False)
                         live_data["message"] = "Auto-print failed."
@@ -331,6 +332,7 @@ def handle_print():
             if order_done:
                 live_data["last_completed_order_id"] = active["order_id"]
                 live_data["message"] = f"Order #{active['order_id']} completed!"
+                # Do NOT reset OEE here — keep numbers visible after completion
 
     except Exception as exc:
         live_data["message"] = f"Print error: {exc}"

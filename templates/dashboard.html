@@ -21,14 +21,14 @@
         <!-- Status Cards -->
         <div class="card">
             <h3>Connection</h3>
-            <div class="value {{ 'status-ok' if data.connected else 'status-err' }}">
+            <div class="value {{ 'status-ok' if data.connected else 'status-err' }}" id="val_connection">
                 {{ "Connected" if data.connected else "Disconnected" }}
             </div>
         </div>
 
         <div class="card">
             <h3>Station State</h3>
-            <div class="value state-{{ data.station_state | lower }}">{{ data.station_state }}</div>
+            <div class="value state-{{ data.station_state | lower }}" id="val_station_state">{{ data.station_state }}</div>
         </div>
 
         <div class="card">
@@ -237,21 +237,43 @@
             }
         }
 
+        let _orderCompleteReloaded = false;
+
         async function pollLive() {
             try {
                 const res = await fetch('/api/live');
                 if (!res.ok) return;
                 const d = await res.json();
 
+                // ── Counters & timings ──
                 set('val_total_count',     d.total_count     ?? '—');
                 set('val_good_count',      d.good_count      ?? '—');
                 set('val_run_time',        d.run_time        ?? '—');
                 set('val_last_cycle_time', d.last_cycle_time ?? '—');
-                set('val_availability',    (d.availability   ?? 0) + '%');
-                set('val_performance',     (d.performance    ?? 0) + '%');
-                set('val_quality',         (d.quality        ?? 0) + '%');
-                set('val_oee',             (d.oee            ?? 0) + '%');
 
+                // ── OEE — only update if we have real values ──
+                if (d.oee > 0 || d.availability > 0) {
+                    set('val_availability', (d.availability ?? 0) + '%');
+                    set('val_performance',  (d.performance  ?? 0) + '%');
+                    set('val_quality',      (d.quality      ?? 0) + '%');
+                    set('val_oee',          (d.oee          ?? 0) + '%');
+                }
+
+                // ── Connection status ──
+                const connEl = document.getElementById('val_connection');
+                if (connEl) {
+                    connEl.textContent = d.connected ? 'Connected' : 'Disconnected';
+                    connEl.className = 'value ' + (d.connected ? 'status-ok' : 'status-err');
+                }
+
+                // ── Station state ──
+                const stateEl = document.getElementById('val_station_state');
+                if (stateEl) {
+                    stateEl.textContent = d.station_state ?? 'UNKNOWN';
+                    stateEl.className = 'value state-' + (d.station_state ?? 'unknown').toLowerCase();
+                }
+
+                // ── Progress bar ──
                 if (d.active_order) {
                     const pc  = d.active_order.printed_count    ?? 0;
                     const pq  = d.active_order.planned_quantity ?? 1;
@@ -262,11 +284,15 @@
                     if (bar) bar.style.width = pct + '%';
                 }
 
-                // Reload if order just completed to show banner
-                if (d.completed_order && !d.active_order) {
+                // ── Order completed — reload once to show banner ──
+                if (d.completed_order && !d.active_order && !_orderCompleteReloaded) {
                     const banner = document.querySelector('.completed-banner');
-                    if (!banner) window.location.reload();
+                    if (!banner) {
+                        _orderCompleteReloaded = true;
+                        window.location.reload();
+                    }
                 }
+
             } catch (e) {}
         }
 
