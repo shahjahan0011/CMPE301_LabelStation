@@ -41,38 +41,6 @@
             <div class="value" id="val_good_count">{{ data.good_count }}</div>
         </div>
 
-        <!-- Runtime Cards -->
-        <div class="card">
-            <h3>Run Time (s)</h3>
-            <div class="value" id="val_run_time">{{ data.run_time }}</div>
-        </div>
-
-        <div class="card">
-            <h3>Last Cycle Time (s)</h3>
-            <div class="value" id="val_last_cycle_time">{{ data.last_cycle_time }}</div>
-        </div>
-
-        <!-- OEE Cards -->
-        <div class="card">
-            <h3>Availability</h3>
-            <div class="value oee-val" id="val_availability">{{ data.availability }}%</div>
-        </div>
-
-        <div class="card">
-            <h3>Performance</h3>
-            <div class="value oee-val" id="val_performance">{{ data.performance }}%</div>
-        </div>
-
-        <div class="card">
-            <h3>Quality</h3>
-            <div class="value oee-val" id="val_quality">{{ data.quality }}%</div>
-        </div>
-
-        <div class="card oee-highlight">
-            <h3>OEE</h3>
-            <div class="value oee-big" id="val_oee">{{ data.oee }}%</div>
-        </div>
-
         <!-- Completed Order Banner -->
         {% if completed_order %}
         <div class="card full-width completed-banner">
@@ -245,19 +213,9 @@
                 if (!res.ok) return;
                 const d = await res.json();
 
-                // ── Counters & timings ──
-                set('val_total_count',     d.total_count     ?? '—');
-                set('val_good_count',      d.good_count      ?? '—');
-                set('val_run_time',        d.run_time        ?? '—');
-                set('val_last_cycle_time', d.last_cycle_time ?? '—');
-
-                // ── OEE — only update if we have real values ──
-                if (d.oee > 0 || d.availability > 0) {
-                    set('val_availability', (d.availability ?? 0) + '%');
-                    set('val_performance',  (d.performance  ?? 0) + '%');
-                    set('val_quality',      (d.quality      ?? 0) + '%');
-                    set('val_oee',          (d.oee          ?? 0) + '%');
-                }
+                // ── Counters ──
+                set('val_total_count', d.total_count ?? '—');
+                set('val_good_count',  d.good_count  ?? '—');
 
                 // ── Connection status ──
                 const connEl = document.getElementById('val_connection');
